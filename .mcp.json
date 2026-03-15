@@ -8,8 +8,18 @@
         "--supabase-url",
         "https://jedtxxytfajeoqeqaegz.supabase.co",
         "--supabase-service-role-key",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplZHR4eHl0ZmFqZW9xZXFhZWd6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzU5MjQyMSwiZXhwIjoyMDg5MTY4NDIxfQ.tcHk_QH3iwXRwr5Vui0LWjIXV8wnYQpTVdSs-dsKAPw"
+        "${SUPABASE_SERVICE_ROLE_KEY}"
       ]
+    },
+    "vercel": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@vercel/mcp@latest"
+      ],
+      "env": {
+        "VERCEL_API_TOKEN": "${VERCEL_API_TOKEN}"
+      }
     }
   }
 }
