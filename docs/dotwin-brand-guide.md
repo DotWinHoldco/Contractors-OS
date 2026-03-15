@@ -1,527 +1,445 @@
-# .win Brand Guide
+# .win — Brand Guide
 
-**Confidential — DotWin Internal**
-Last updated: March 2026
-
----
-
-## 1. Brand Foundation
-
-DotWin (.win) is a founder-centric business accelerator and growth engine owned by Shelby and Skylar. The brand operates at the intersection of consulting, tools, community, and tangible growth systems — delivered as one ecosystem.
-
-The visual identity reflects this: bold, precise, black-and-white at its core, with intentional color used only to signal which product or phase world you're in. Nothing decorative. Everything earned.
+> **This is the master brand guide for the .win platform (Contractors OS).**
+> All platform UI, marketing pages, admin dashboards, portals, and tenant templates
+> must follow these guidelines. Tenant-specific branding (colors, fonts, logos)
+> overrides ONLY the tenant-facing public site and client portal — never the
+> platform admin or core .win identity.
 
 ---
 
-## 2. Logo
+## BRAND IDENTITY
 
-### The Mark
+| Field | Value |
+|---|---|
+| **Brand Name** | .win |
+| **Legal Name** | Contractors OS |
+| **Tagline** | The Operating System for Contractors |
+| **Voice** | Confident, direct, premium. No fluff. Say less, mean more. |
+| **Personality** | The sharpest tool in the shed. Professional authority meets modern tech. |
 
-The logo is lowercase **`.win`** set in **Yeseva One**. The period before "win" is the distinctive brand element — it references the domain/digital world and creates instant visual recognition.
+---
 
-**Rules:**
+## LOGO SYSTEM
 
-- Always lowercase. Never ".Win" or ".WIN"
-- Always Yeseva One. No substitutions
-- The period is part of the logo, never removed
-- Minimum clear space: the height of the period on all sides
-- Never stretch, rotate, outline, or add effects
+All logo files live in `/public/logos/` in the repository.
 
 ### Logo Variants
 
-| File | Description | Use Case |
-|------|-------------|----------|
-| `win_black_logohorizontalnobg.png` | Horizontal, black text, transparent bg | Light backgrounds |
-| `win_white_logohorizontalnobg.png` | Horizontal, white text, transparent bg | Dark backgrounds |
-| `win_white_logohorizontalblackbg.png` | Horizontal, white text, black bg | Social, thumbnails, anywhere the bg can't be controlled |
-| `dotwincircularlogoicon.png` | Circular icon mark | Avatars, favicons, app icons |
-| `dotwincircularlogoiconwhite.png` | Circular icon mark (white variant) | Dark UI contexts |
-| `dotwin_circle_more_padding.png` | Circular icon with extra padding | Smaller placements where breathing room is needed |
-| `dotwincirclemost_padding.png` | Circular icon with maximum padding | Smallest placements (16px–32px) |
-| `dotwinreports.png` | .win Reports logo (white on black) | Report headers, data/analytics contexts |
+| File | Use Case | Dimensions | Background |
+|---|---|---|---|
+| `win_black_logo-horizontal-nobg.png` | Primary horizontal logo — light backgrounds | 1080×422 | Transparent |
+| `win_white_logo-horizontal-blackbg.png` | Primary horizontal logo — dark backgrounds | 1080×422 | Black |
+| `win_black_logo-square-white_bg.png` | Square logo — light contexts (favicon source, app icon) | 1080×1080 | White |
+| `win_white_square_black_bg.png` | Square logo — dark contexts | 1080×1080 | Black |
+| `win-black-circle-white-letters.png` | Circular badge — dark badge, white text | 1080×1080 | Transparent |
+| `win_white_circle_black_letters.png` | Circular badge — white badge, black text | 1080×1080 | Transparent |
+| `dot-win_circle_more_padding.png` | Circular icon with padding — profile pictures, small contexts | 1240×1240 | Varies |
+| `dot-win-circle-most_padding.png` | Circular icon with max padding — smallest contexts | 1500×1500 | Varies |
+| `dot-win-circular-logo-icon.psd` | Source file (Photoshop) — DO NOT use in production | N/A | N/A |
 
-### Logo Don'ts
+### Logo Usage Rules
 
-- Don't add drop shadows or glows to the logo itself
-- Don't place the logo on busy or patterned backgrounds without a solid container
-- Don't use any font other than Yeseva One for the wordmark
-- Don't change the color of the logo to anything other than black or white
-- Don't rearrange the period or add extra punctuation
+1. **Horizontal logo** is the primary mark. Use it in headers, marketing, and anywhere the brand name needs to read clearly.
+2. **Circular badge** is for compact contexts: favicons, app icons, social avatars, loading screens.
+3. **Minimum clear space:** The dot (period) in `.win` is a distinctive brand element. Never crop it. Maintain at least the width of the dot as clear space around the logo on all sides.
+4. **Never alter the logo.** No rotation, no color changes, no effects, no stretching.
+5. **Dark on light, light on dark.** Always use the appropriate variant for the background.
+
+### Logo Selection Logic (for code)
+
+```
+IF background is light (white, off-white, light gray):
+  → Use black logo variant
+IF background is dark (black, navy, dark gray):
+  → Use white logo variant
+IF context is circular/small (favicon, avatar, badge):
+  → Use circular badge variant
+IF context is wide/header:
+  → Use horizontal variant
+```
 
 ---
 
-## 3. Color System
+## TYPOGRAPHY
 
-### Core Palette
+### Platform Typography (.win brand)
 
-The foundation of every DotWin asset is black and white. Period. Color is never decorative — it's semantic. Each highlight color maps to a specific product or business phase.
+| Role | Font | Weight | Usage |
+|---|---|---|---|
+| **Display / Hero** | Yeseva One | 400 (Regular) | Brand name "Contractors", large hero text, section titles on marketing pages |
+| **Headings** | Outfit | 600 (SemiBold) | H1-H3, navigation, buttons, labels, "OS" in the brand name |
+| **Body** | Outfit | 400 (Regular) | Paragraph text, descriptions, form labels |
+| **Body Emphasis** | Outfit | 500 (Medium) | Bold body text, table headers, highlighted content |
+| **Mono / Code** | JetBrains Mono | 400 | Code blocks, invoice numbers, technical IDs |
 
-| Color | Hex | Role |
-|-------|-----|------|
-| Black | `#000000` | Primary background, text on light sections |
-| White | `#FFFFFF` | Primary text on dark sections, light section bg |
-| Off-White | `#F8F8F8` | Alternate light section background |
+### Brand Name Typography
 
-### Product Highlight Colors
+The brand "Contractors OS" uses a split typography treatment:
+- **"Contractor"** → Yeseva One (serif, elegant, authoritative)
+- **"OS"** → Outfit (sans-serif, modern, technical)
 
-Each product inherits the full DotWin design system. The only variable is the highlight color, which cascades through every accent, button, hover state, border, badge, and glow.
+This pairing communicates: *old-school craftsmanship meets modern technology.*
 
-| Product | Phase | Highlight Color | Hex | CSS Variable |
-|---------|-------|-----------------|-----|-------------|
-| Partner Readiness Guide (PRG) | Growth | Yellow / Gold | `#FFE134` | `--yellow` or `--hl` |
-| Entrepreneur's Flame | First Client | Orange | `#FF6B2B` | `--hl` (flame context) |
-| Affiliate Program | Scale | Neon Pink | `#FF2D78` | `--hl` (affiliate context) |
-| Platform Builder | Infrastructure | White (Pure B&W) | `#FFFFFF` | `--hl` (builder context) |
+### Font Loading
 
-**The rule:** Black and white is always the foundation. The highlight color tells you which product world you're in. Any DotWin asset is immediately recognizable as DotWin regardless of which product color it carries.
+```typescript
+// app/layout.tsx
+import { Outfit } from "next/font/google";
+import localFont from "next/font/local";
 
-### Grayscale System
+// Yeseva One from Google Fonts
+const yeseva = Yeseva_One({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-display",
+  display: "swap",
+});
 
-Used across all products for borders, subdued text, disabled states, and structural hierarchy.
-
-| Token | Hex | Usage |
-|-------|-----|-------|
-| `--g1` | `#111111` | Deep section backgrounds (`.sec.deep`) |
-| `--g2` | `#1A1A1A` | Input backgrounds, elevated dark surfaces |
-| `--g3` | `#222222` | Disabled button backgrounds |
-| `--g4` | `#333333` | Subtle borders on dark |
-| `--g5` | `#555555` | Section tags on light, subdued labels |
-| `--g6` | `#888888` | Placeholder text, secondary info |
-| `--g7` | `#BBBBBB` | Light borders, strikethrough text |
-| `--g8` | `#DDDDDD` | Lightest borders, dividers on light bg |
-
-### Status / Functional Colors
-
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Red | `#D62828` | Errors, "awaiting" status, urgency |
-| Green | `#16A34A` | Success, "partner" status, confirmations |
-
----
-
-## 4. Typography
-
-All Google Fonts. Load via:
-
-```
-https://fonts.googleapis.com/css2?family=Yeseva+One&family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Dancing+Script:wght@400;500;600;700&display=swap
+// Outfit for headings and body
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
 ```
 
-### Font Stack
+### Tailwind Configuration
 
-| Font | Role | Weights Used | CSS |
-|------|------|-------------|-----|
-| **Yeseva One** | Logo only | 400 | `font-family: 'Yeseva One', serif` |
-| **Playfair Display** | Headlines, section titles | 400, 600, 700, 800 (+ italic 400) | `font-family: 'Playfair Display', serif` |
-| **Outfit** | Body text, UI, buttons, labels, inputs | 300–900 | `font-family: 'Outfit', sans-serif` |
-| **Dancing Script** | Signatures only | 400–700 | `font-family: 'Dancing Script', cursive` |
+```javascript
+// tailwind.config.ts
+fontFamily: {
+  display: ["var(--font-display)", "Georgia", "serif"],
+  body: ["var(--font-body)", "system-ui", "sans-serif"],
+  mono: ["JetBrains Mono", "monospace"],
+},
+```
 
 ### Type Scale
 
-**Headlines (Playfair Display):**
-
-- Page title / cover: `clamp(30px, 5.5vw, 44px)` — weight 800, line-height 1.18
-- Section heading: `clamp(28px, 5vw, 42px)` — weight 800, line-height 1.18
-- Card heading: `19px–22px` — weight 800
-
-**Body (Outfit):**
-
-- Standard paragraph: `17–17.5px` — weight 400, line-height 1.85
-- Subdued paragraph: `15–16px` — weight 400, color at 55% opacity
-- Small text / notes: `13–14px` — weight 400–500
-
-**Labels & Tags (Outfit):**
-
-- Section tag: `11–12px` — weight 900, letter-spacing 3–4px, uppercase
-- Button text: `14–15px` — weight 800, letter-spacing 1–2px, uppercase
-- Badge text: `10–11px` — weight 900, letter-spacing 2–3px, uppercase
-
-**Signatures (Dancing Script):**
-
-- Signature preview: `clamp(32px, 6vw, 48px)` — weight 500
-- Used exclusively in the agreement signing flow
-
-### Typography Rules
-
-- Yeseva One is reserved for the `.win` logo mark only. Never use it for headings or body text
-- Playfair Display is for headlines and major section titles only. Never for body copy
-- Outfit handles everything else: paragraphs, buttons, labels, navigation, inputs, small text
-- Dancing Script appears only in signature contexts. Never for decorative headlines
-- Anti-aliasing is always on: `-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale`
+| Element | Size | Weight | Font | Letter Spacing |
+|---|---|---|---|---|
+| Hero headline | 64px / 4rem | 400 | Yeseva One | -0.02em |
+| H1 | 40px / 2.5rem | 600 | Outfit | -0.02em |
+| H2 | 32px / 2rem | 600 | Outfit | -0.01em |
+| H3 | 24px / 1.5rem | 600 | Outfit | 0 |
+| H4 | 20px / 1.25rem | 500 | Outfit | 0 |
+| Body | 16px / 1rem | 400 | Outfit | 0 |
+| Body Large | 18px / 1.125rem | 400 | Outfit | 0 |
+| Small | 14px / 0.875rem | 400 | Outfit | 0.01em |
+| Caption | 12px / 0.75rem | 500 | Outfit | 0.02em |
+| Button | 14px / 0.875rem | 600 | Outfit | 0.02em |
 
 ---
 
-## 5. Layout & Section System
+## COLOR SYSTEM
 
-### Section Backgrounds
+### Core Palette
 
-Pages alternate between three background states to create rhythm and prevent visual monotony. The pattern is: dark → light → off-white → dark (or variations).
+| Name | Hex | RGB | Usage |
+|---|---|---|---|
+| **Black** | `#000000` | 0, 0, 0 | Primary brand color, text, dark backgrounds |
+| **White** | `#FFFFFF` | 255, 255, 255 | Backgrounds, text on dark, cards |
+| **Off-White** | `#FAFAFA` | 250, 250, 250 | Page backgrounds, subtle surfaces |
+| **Warm Gray 50** | `#F9F7F5` | 249, 247, 245 | Warm background alternative |
+| **Warm Gray 100** | `#F0EDEA` | 240, 237, 234 | Card backgrounds, borders |
+| **Warm Gray 200** | `#E0DBD5` | 224, 219, 213 | Dividers, disabled states |
+| **Warm Gray 400** | `#A39E97` | 163, 158, 151 | Secondary text, placeholders |
+| **Warm Gray 600** | `#6B6560` | 107, 101, 96 | Body text secondary |
+| **Warm Gray 800** | `#3D3834` | 61, 56, 52 | Body text primary |
+| **Charcoal** | `#1A1A1A` | 26, 26, 26 | Near-black for UI elements |
 
-| Class | Background | Text Color | Use |
-|-------|-----------|------------|-----|
-| `.sec.dark` | `#000000` | White | Primary, most sections |
-| `.sec.light` | `#FFFFFF` | Black | Contrast breaks, featured content |
-| `.sec.off` | `#F8F8F8` | Black | Softer contrast break |
-| `.sec.deep` | `#111111` | White | Elevated dark, subtle distinction from pure black |
+### Functional Colors
 
-### Content Width
+| Name | Hex | Usage |
+|---|---|---|
+| **Success** | `#2D6A4F` | Confirmations, completed states, positive indicators |
+| **Warning** | `#CC8A00` | Warnings, pending states, attention needed |
+| **Error** | `#C1292E` | Errors, destructive actions, overdue |
+| **Info** | `#1B4965` | Informational, links, active states |
+| **Accent** | `#D4A84B` | Gold accent — premium feel, CTAs on dark backgrounds |
 
-- `.wrap` — `max-width: 820px`, centered, `padding: 0 28px`
-- Narrower editorial width: `max-width: 780px`
-- Section padding: `110px 0` (desktop), scales down on mobile
-
-### Responsive Breakpoints
-
-| Breakpoint | Target |
-|-----------|--------|
-| `960px` | Tablet / small desktop — grid collapse, font scale adjustments |
-| `768px` | Tablet portrait — modal, status bar, layout adaptations |
-| `600px` | Mobile — single column, full-width buttons, reduced padding |
-
-### Mobile-Specific Rules
-
-- Full-width buttons on mobile (no side padding on CTAs)
-- `-webkit-text-size-adjust: 100%` on iOS
-- Minimum `16px` font size on form inputs (prevents iOS zoom)
-- Touch targets minimum `44px` height
-
----
-
-## 6. Components
-
-### Section Tag
-
-The section tag is the thin uppercase label that introduces each section, always with a trailing rule line.
-
-```css
-.sec-tag {
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 4px;
-  text-transform: uppercase;
-  margin-bottom: 22px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.sec-tag::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: currentColor;
-  opacity: .35;
-}
-```
-
-On dark sections: `color: rgba(255,255,255,.3)`. On light sections: `color: var(--g5)`.
-
-### Highlight Span (`.yhl`)
-
-Inline text highlight using the active product color. Used for emphasis within paragraphs.
-
-```css
-.yhl {
-  background: var(--yellow); /* or var(--hl) */
-  padding: 2px 7px;
-  color: var(--black);
-  -webkit-text-fill-color: var(--black);
-  font-weight: 700;
-  display: inline;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
-```
-
-### Buttons
-
-**Primary (highlight color):**
-
-```css
-.btn-primary {
-  background: var(--hl);
-  color: var(--black);
-  font-family: 'Outfit', sans-serif;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 18px 44px;
-  border-radius: 100px;
-  border: none;
-  cursor: pointer;
-  transition: all .35s cubic-bezier(.34, 1.56, .64, 1);
-}
-.btn-primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(var(--hl-rgb), .25);
-}
-```
-
-**Secondary (ghost):**
-
-```css
-.btn-secondary {
-  background: rgba(255,255,255,.06);
-  color: var(--white);
-  border: 1px solid rgba(255,255,255,.1);
-  /* same font/size/padding as primary */
-}
-.btn-secondary:hover {
-  background: rgba(255,255,255,.1);
-}
-```
-
-**Disabled state:** `background: var(--g3); color: var(--g5); cursor: not-allowed; no transform/shadow.`
-
-### Callout Block
-
-Used for key takeaways, pull quotes, and instructional emphasis.
-
-```css
-.callout {
-  background: rgba(var(--hl-rgb), .03);
-  border-left: 3px solid var(--hl);
-  padding: 22px 26px;
-  margin: 28px 0;
-  border-radius: 0 14px 14px 0;
-}
-```
-
-### Cards
-
-**Dark card** (on dark sections): `background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); border-radius: 16px; padding: 28px;` — hover: border transitions to highlight color with subtle lift.
-
-**Light card** (on light/off-white sections): `background: #fff; border: 2px solid #000; border-radius: 16px; padding: 28px; box-shadow: 6px 6px 0 #000;` — hover: shadow intensifies.
-
-### Stat Strip
-
-Horizontal row of key metrics. Numbers in highlight color, labels in subdued text.
-
-```css
-.stat-num {
-  font-size: clamp(28px, 5vw, 36px);
-  font-weight: 900;
-  color: var(--hl);
-}
-.stat-lbl {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.3);
-}
-```
-
-### Badge
-
-Small uppercase label, often used on cards or playbook blocks.
-
-```css
-.badge {
-  display: inline-block;
-  padding: 6px 14px;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  background: var(--hl);
-  color: var(--black);
-  border-radius: 100px;
-}
-```
-
----
-
-## 7. Motion & Animation
-
-### Easing Curves
-
-| Name | Value | Use |
-|------|-------|-----|
-| Expo (primary) | `cubic-bezier(0.16, 1, 0.3, 1)` | Scroll reveals, section transitions, smooth entries |
-| Spring | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Buttons, hover lifts, interactive elements, checkboxes |
-
-### Scroll Reveals
-
-Elements enter the viewport with opacity and transform transitions.
-
-```css
-.reveal {
-  opacity: 0;
-  transform: translateY(50px);
-  transition: opacity .9s var(--ease-expo), transform .9s var(--ease-expo);
-}
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-```
-
-Variants: `.from-left` (translateX -70px), `.from-right` (translateX 70px), `.from-scale` (scale 0.9).
-
-Stagger delays: `.s1` through `.s8` (0.1s increments).
-
-### Scroll Progress Bar
-
-Fixed to top of page, 3px height, highlight color fill. Width tracks scroll percentage.
-
-### Noise Texture Overlay
-
-Subtle grain applied globally via `body::after`. Fixed position, pointer-events none, z-index 9999, opacity 0.02. Uses an inline SVG `feTurbulence` filter at base frequency 0.85.
-
-### Radial Glow
-
-Used on cover sections and key areas for atmospheric depth.
-
-```css
-background: radial-gradient(
-  ellipse at 50% 30%,
-  rgba(var(--hl-rgb), .06) 0%,
-  transparent 55%
-);
-```
-
-### Pulse Line
-
-Vertical animated line on the left edge of long-scroll pages (PRG). Yellow pulse travels up and down. Appears after initial scroll.
-
----
-
-## 8. Patterns & Textures
-
-### Dark Section Patterns
-
-- Noise overlay (always on, opacity 0.02)
-- Radial glow behind cover headlines
-- Subtle border separators: `1px solid rgba(255,255,255,.06)`
-
-### Light Section Patterns
-
-- Clean, no noise overlay
-- Borders use: `1px solid rgba(0,0,0,.06)` or `2px solid #000` for cards
-- Tags and labels at `color: var(--g5)`
-
----
-
-## 9. CSS Variables Reference
-
-The full set of CSS custom properties used across all DotWin properties:
+### CSS Variables
 
 ```css
 :root {
   /* Core */
-  --black: #000;
-  --white: #fff;
-  --off-white: #f8f8f8;
+  --color-black: #000000;
+  --color-white: #FFFFFF;
+  --color-off-white: #FAFAFA;
+  --color-charcoal: #1A1A1A;
 
-  /* Product Highlights */
-  --yellow: #ffe134;        /* PRG */
-  --flame-orange: #ff6b2b;  /* Entrepreneur's Flame */
-  --affiliate-pink: #ff2d78;/* Affiliates */
-  /* Platform Builder uses --white as highlight */
+  /* Warm Grays */
+  --color-gray-50: #F9F7F5;
+  --color-gray-100: #F0EDEA;
+  --color-gray-200: #E0DBD5;
+  --color-gray-400: #A39E97;
+  --color-gray-600: #6B6560;
+  --color-gray-800: #3D3834;
 
-  /* Active highlight (swap per product) */
-  --hl: #ffe134;
-  --hl-rgb: 255, 225, 52;
+  /* Functional */
+  --color-success: #2D6A4F;
+  --color-warning: #CC8A00;
+  --color-error: #C1292E;
+  --color-info: #1B4965;
+  --color-accent: #D4A84B;
 
-  /* Status */
-  --red: #d62828;
-
-  /* Grayscale */
-  --g1: #111;
-  --g2: #1a1a1a;
-  --g3: #222;
-  --g4: #333;
-  --g5: #555;
-  --g6: #888;
-  --g7: #bbb;
-  --g8: #ddd;
-
-  /* Easing */
-  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Semantic (maps to functional) */
+  --color-bg: var(--color-off-white);
+  --color-surface: var(--color-white);
+  --color-text: var(--color-charcoal);
+  --color-text-secondary: var(--color-gray-600);
+  --color-text-muted: var(--color-gray-400);
+  --color-border: var(--color-gray-200);
+  --color-border-subtle: var(--color-gray-100);
+  --color-primary: var(--color-black);
+  --color-primary-foreground: var(--color-white);
 }
 ```
 
-To switch product themes, override `--hl` and `--hl-rgb`:
+### Dark Mode
 
 ```css
-[data-theme="flame"]     { --hl: #ff6b2b; --hl-rgb: 255, 107, 43; }
-[data-theme="affiliate"] { --hl: #ff2d78; --hl-rgb: 255, 45, 120; }
-[data-theme="builder"]   { --hl: #ffffff; --hl-rgb: 255, 255, 255; }
+.dark {
+  --color-bg: #0A0A0A;
+  --color-surface: var(--color-charcoal);
+  --color-text: #E8E5E1;
+  --color-text-secondary: var(--color-gray-400);
+  --color-text-muted: var(--color-gray-600);
+  --color-border: #2A2725;
+  --color-border-subtle: #1F1D1B;
+  --color-primary: var(--color-white);
+  --color-primary-foreground: var(--color-black);
+}
 ```
 
 ---
 
-## 10. Brand Voice
+## DESIGN PRINCIPLES
 
-### Tone
+### 1. Black & White First
+The .win brand lives in black and white. Color is used sparingly and intentionally — only for functional meaning (success, error, warning) or the gold accent on premium moments.
 
-Bold, direct, founder-to-founder. DotWin speaks as operators who build, not consultants who advise from the sidelines. Confidence without arrogance. Results, systems, and removing excuses.
+### 2. Generous Space
+Let content breathe. Large margins, generous padding, ample line height. Density is for the admin dashboard — the marketing site and portal should feel open and confident.
 
-### Do
+### 3. Sharp Contrast
+High contrast between text and background. Bold typographic hierarchy. No ambiguity about what's important on the page.
 
-- Write like you're talking to a founder across the table
-- Use short, punchy sentences when making a point
-- Lead with outcomes and specifics
-- Use "we build" not "we help you build"
-- Scannability over density — stat cards, callout blocks, structured sections
+### 4. Minimal Decoration
+No gradients. No drop shadows on cards (use border or subtle elevation only). No rounded corners larger than 8px. Clean lines. The logo's serif elegance sets the tone — everything else stays out of the way.
 
-### Don't
-
-- Use filler phrases ("passionate about empowering entrepreneurs")
-- Use em dashes excessively
-- Write anything that reads as machine-generated or generic consulting language
-- Use desperate or salesy phrasing — even follow-ups and access-denied pages should feel exclusive and intentional
-- Write walls of text without visual structure
-
-### Copy Hierarchy
-
-1. **Headline:** Playfair Display, bold, short (under 10 words ideal)
-2. **Subhead / tagline:** Outfit, lighter weight, provides context
-3. **Body:** Outfit 400, natural reading rhythm, 17px
-4. **CTA:** Outfit 800, uppercase, action-oriented ("Become a Partner Now" not "Learn More")
+### 5. Authority Through Restraint
+The fewer elements on a page, the more each one matters. Every pixel earns its place.
 
 ---
 
-## 11. Platform-Specific Notes
+## UI COMPONENT GUIDELINES
 
-### Simvoly (businesses.win)
+### Buttons
 
-- ID-scope all CSS wrappers (`#win-home-root`, `#win-portfolio-root`, etc.) with high-specificity selectors
-- Use `!important` on all button properties and color overrides — Simvoly's dark theme fights every style
-- Never host images on Simvoly (compresses to thumbnails). Use external CDN URLs (Imgur `i.imgur.com` direct links, Wix CDN for portfolio images)
-- Inline styles as backup for critical properties
-- 16px minimum on form inputs to prevent iOS zoom
+| Variant | Background | Text | Border | Usage |
+|---|---|---|---|---|
+| Primary | Black | White | None | Main CTA: "Book Now", "Send", "Save" |
+| Secondary | White | Black | 1px Black | Secondary actions |
+| Ghost | Transparent | Black | None | Tertiary actions, nav links |
+| Danger | `#C1292E` | White | None | Delete, cancel, destructive |
+| Accent | `#D4A84B` | Black | None | Premium CTAs on dark backgrounds |
 
-### SuiteDash Portal (portal.businesses.win)
+```
+Border radius: 6px (all buttons)
+Padding: 12px 24px (default), 8px 16px (small), 16px 32px (large)
+Font: Outfit 600, 14px, letter-spacing 0.02em, uppercase
+Transition: all 150ms ease
+Hover: opacity 0.85
+```
 
-- Custom fields referenced by UUID
-- Status-aware UI components (awaiting → signed → partner)
-- Dancing Script only appears in the signature flow
+### Cards
 
-### Cloudflare Worker (api.ceos.win)
+```
+Background: var(--color-surface)
+Border: 1px solid var(--color-border-subtle)
+Border radius: 8px
+Padding: 24px
+Hover (if interactive): border-color var(--color-border)
+No box-shadow. Elevation through border only.
+```
 
-- API proxy layer — all credentials stay server-side
-- Deploy worker updates before pushing dependent frontend files
+### Forms
+
+```
+Input background: var(--color-white)
+Input border: 1px solid var(--color-border)
+Input border-radius: 6px
+Input padding: 12px 16px
+Input font: Outfit 400, 16px
+Focus: border-color var(--color-black), ring 2px var(--color-black) / 10%
+Label: Outfit 500, 14px, color var(--color-gray-800), margin-bottom 6px
+```
+
+### Tables (Admin Dashboard)
+
+```
+Header: background var(--color-gray-50), font Outfit 500, 12px, uppercase, letter-spacing 0.05em
+Row: border-bottom 1px solid var(--color-border-subtle)
+Row hover: background var(--color-gray-50)
+Cell padding: 12px 16px
+```
+
+### Sidebar (Admin)
+
+```
+Background: var(--color-black)
+Text: var(--color-white)
+Active item: background rgba(255,255,255,0.1), text white, left border 2px white
+Hover: background rgba(255,255,255,0.05)
+Logo: white horizontal variant, top of sidebar
+Width: 260px (expanded), 64px (collapsed)
+```
 
 ---
 
-## 12. File & Asset Management
+## TENANT BRANDING SYSTEM
 
-### Image Hosting
+When a tenant (e.g., Grand Traverse Home Co.) is active, their branding overrides ONLY the following:
 
-Never use Simvoly's native image hosting. Always use external CDN URLs:
+### What Tenants Can Override
 
-- **Imgur:** `i.imgur.com` direct URLs for general assets
-- **Wix CDN:** Portfolio mockup images displayed in scrollable 420px containers
+| Property | Source | Affects |
+|---|---|---|
+| Logo | `tenant_themes.logo_url` | Marketing site header, portal header, invoices |
+| Logo (dark) | `tenant_themes.logo_dark_url` | Footer on dark backgrounds |
+| Favicon | `tenant_themes.favicon_url` | Browser tab |
+| Primary Color | `tenant_themes.color_primary` | CTAs, links, active states on tenant pages |
+| Secondary Color | `tenant_themes.color_secondary` | Accent elements |
+| Accent Color | `tenant_themes.color_accent` | Highlights |
+| Heading Font | `tenant_themes.font_heading` | H1-H4 on tenant pages |
+| Body Font | `tenant_themes.font_body` | Body text on tenant pages |
 
-### Logo Files
+### What Tenants CANNOT Override
 
-All logo variants are maintained in the project repository. See Section 2 for the complete variant table and use cases.
+- The .win logo or branding in the admin dashboard
+- The platform admin UI
+- The core color system (gray scale, functional colors)
+- The admin sidebar design
+- "Powered by .win" footer badge on all tenant sites
+
+### Tenant CSS Variable Injection
+
+```typescript
+// When tenant is resolved, inject their colors as CSS variables
+const tenantVars = {
+  "--tenant-primary": tenant.theme.color_primary,
+  "--tenant-secondary": tenant.theme.color_secondary,
+  "--tenant-accent": tenant.theme.color_accent,
+};
+
+// In tenant-facing pages, primary maps to tenant color
+// --color-primary: var(--tenant-primary, var(--color-black));
+```
 
 ---
 
-*This is a living document. As new products, phases, or brand elements are introduced, they should be added here with the same level of specificity.*
+## PAGE LAYOUT PATTERNS
 
-**.win**
+### Marketing Site (Public)
+
+```
+┌─────────────────────────────────────────────────────┐
+│  [Logo]          Services  Portfolio  About    [CTA] │  ← Sticky header
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│                    HERO SECTION                       │  ← Full width, large type
+│               Yeseva One headline                    │
+│            Outfit subheadline + CTA                  │
+│                                                      │
+├─────────────────────────────────────────────────────┤
+│                   CONTENT SECTIONS                   │  ← Max-width 1200px, centered
+│                                                      │
+├─────────────────────────────────────────────────────┤
+│  [Logo]   Links    Links    Contact    [Social]     │  ← Footer
+│                  Powered by .win                     │
+└─────────────────────────────────────────────────────┘
+```
+
+### Admin Dashboard
+
+```
+┌────────┬────────────────────────────────────────────┐
+│        │  Search                    🔔  [Avatar]    │
+│  .win  ├────────────────────────────────────────────┤
+│  logo  │                                            │
+│        │    MAIN CONTENT AREA                       │
+│  Nav   │    Cards, Tables, Forms                    │
+│  items │                                            │
+│        │                                            │
+│        │                                            │
+│        │                                            │
+└────────┴────────────────────────────────────────────┘
+```
+
+### Client Portal
+
+```
+┌─────────────────────────────────────────────────────┐
+│  [Tenant Logo]       Dashboard  Projects  Pay   [U] │
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│    CLEAN, SIMPLE CONTENT                             │
+│    Optimized for mobile                              │
+│    Large touch targets                               │
+│                                                      │
+├─────────────────────────────────────────────────────┤
+│                  Powered by .win                     │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## IMAGE GUIDELINES
+
+- **Marketing hero images:** Full-bleed, high contrast, desaturated slightly to let text stand out. Overlay with semi-transparent black gradient if text overlays image.
+- **Portfolio photos:** Sharp, well-lit, professional. Before/after pairs aligned. No filters.
+- **Icons:** Lucide icon set. Stroke width 1.5px. Color: `var(--color-text)` or white on dark.
+- **Illustrations:** None. The brand is photographic and typographic. No cartoons, no illustrations, no clip art.
+
+---
+
+## ANIMATION GUIDELINES
+
+- **Page transitions:** Subtle fade (150ms ease)
+- **Scroll reveals:** Fade up, 20px translate, staggered 50ms per element
+- **Hover states:** 150ms ease transition on opacity, background, border
+- **Loading states:** Skeleton screens with subtle pulse animation in `var(--color-gray-100)`
+- **No bouncing, no spring physics, no playful animations.** The brand is composed and professional.
+
+---
+
+## "POWERED BY .WIN" BADGE
+
+Every tenant site displays a "Powered by .win" badge in the footer:
+
+```html
+<a href="https://contractorsos.com" class="powered-by">
+  Powered by <img src="/logos/win_black_logo-horizontal-nobg.png" alt=".win" height="16" />
+</a>
+```
+
+Style: Outfit 400, 12px, `var(--color-gray-400)`. Logo height: 16px. Centered in footer. Subtle but always present.
+
+---
+
+## FILE NAMING CONVENTION FOR BRAND ASSETS
+
+```
+public/logos/
+├── win_black_logo-horizontal-nobg.png        # Primary horizontal (light bg)
+├── win_white_logo-horizontal-blackbg.png     # Primary horizontal (dark bg)
+├── win_black_logo-square-white_bg.png        # Square (light bg)
+├── win_white_square_black_bg.png             # Square (dark bg)
+├── win-black-circle-white-letters.png        # Circle badge (dark)
+├── win_white_circle_black_letters.png        # Circle badge (light)
+├── dot-win_circle_more_padding.png           # Circle icon (medium padding)
+├── dot-win-circle-most_padding.png           # Circle icon (max padding)
+└── dot-win-circular-logo-icon.psd            # Source file (not served)
+```

@@ -272,13 +272,13 @@ export const config = {
 Create `app/layout.tsx`:
 ```typescript
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Outfit, Yeseva_One } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { QueryProvider } from "@/components/providers/query-provider";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-heading" });
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-body" });
+const yeseva = Yeseva_One({ subsets: ["latin"], weight: "400", variable: "--font-display" });
 
 export const metadata: Metadata = {
   title: "Contractors OS",
@@ -287,7 +287,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jakarta.variable}`}>
+    <html lang="en" className={`${outfit.variable} ${yeseva.variable}`}>
       <body className="font-body antialiased">
         <QueryProvider>
           {children}
@@ -565,11 +565,17 @@ Create `app/(platform)/feature-flags/page.tsx`:
 Build the tenant-branded public website. This is the money-maker. It must look so premium that homeowners instantly trust the contractor. Every page must be responsive, fast, and conversion-optimized.
 
 ### Design Direction
-- **Aesthetic:** Refined modern. Think Restoration Hardware meets Stripe. Clean lines, generous whitespace, confident typography, subtle shadows.
-- **Color:** Tenant's primary + secondary colors with neutral grays. High contrast text.
-- **Typography:** Heading font from tenant config (default: Plus Jakarta Sans). Body: Inter. Large, bold headings.
-- **Photography:** Full-width hero sections. Large project photos. Before/after sliders.
-- **Animations:** Subtle fade-up on scroll. Smooth hover transitions. No jarring effects.
+
+> **Follow `docs/dotwin-brand-guide.md` exactly.** What follows is the strategic intent.
+
+- **Aesthetic:** Black & white foundation. Yeseva One serif for hero headlines. Outfit for everything else. Warm gray palette. Gold accent (`#D4A84B`) for premium CTA moments on dark sections. Think Restoration Hardware meets Stripe — but monochrome.
+- **Color:** Tenant's primary color overrides `--color-primary` on their pages. Default is black. Warm grays for backgrounds and borders. No gradients.
+- **Typography:** Yeseva One 400 for hero headlines (large, confident, serif). Outfit 600 for H1-H3. Outfit 400 for body. Outfit 600 uppercase for buttons.
+- **Photography:** Full-width hero sections with semi-transparent black overlay for text contrast. Large project photos. Before/after sliders.
+- **Animations:** Subtle fade-up on scroll (20px translate, 150ms ease). Hover transitions at 150ms. No bounce, no spring physics. Composed and professional.
+- **Cards:** White background, 1px `var(--color-border-subtle)` border, 8px radius, 24px padding. No box-shadow. Elevation through border only.
+- **Admin sidebar:** Black background, white .win logo, white text, 260px wide.
+- **"Powered by .win"** in every tenant footer.
 
 ### Step 4.1 — Marketing Layout
 
