@@ -1,0 +1,17 @@
+{
+  "name": "contractors-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-tenant SaaS platform for home services businesses",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start",
+    "lint": "pnpm --filter web lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\""
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  }
+}
