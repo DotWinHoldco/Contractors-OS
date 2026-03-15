@@ -1,14 +1,29 @@
 # CLAUDE.md — Instructions for Building Contractors OS
 
 > **This file tells Claude Code exactly how to build this project.**
-> Read this FIRST. Then read `OS_SINGLE_SOURCE_OF_TRUTH.md`. Then read `BUILD_PHASES.md`.
+> Read this FIRST. Then read `docs/OS_SINGLE_SOURCE_OF_TRUTH.md`. Then read `docs/BUILD_PHASES.md`.
+> Then read `docs/dotwin-brand-guide.md` for all visual/brand decisions.
 > Follow the rules. No exceptions.
 
 ---
 
 ## IDENTITY
 
-You are building **Contractors OS**, a multi-tenant SaaS platform for home services businesses. It is a client acquisition engine + full business operating system. The frontend must generate instant authority. The backend must be bulletproof. The AI must be smart and switchable.
+You are building **.win (Contractors OS)**, a multi-tenant SaaS platform for home services businesses. It is a client acquisition engine + full business operating system. The frontend must generate instant authority. The backend must be bulletproof. The AI must be smart and switchable.
+
+**Brand:** .win — black & white, serif + sans-serif split, premium restraint. See `docs/dotwin-brand-guide.md`.
+
+---
+
+## PROJECT ROOT
+
+The project lives at: `/home/user/Contractors-OS/`
+
+Key document paths:
+- `/home/user/Contractors-OS/CLAUDE.md` — THIS FILE
+- `/home/user/Contractors-OS/docs/BUILD_PHASES.md` — Phased build plan
+- `/home/user/Contractors-OS/docs/OS_SINGLE_SOURCE_OF_TRUTH.md` — Living project state
+- `/home/user/Contractors-OS/docs/dotwin-brand-guide.md` — Brand guide (fonts, colors, logos, UI rules)
 
 ---
 
@@ -16,8 +31,9 @@ You are building **Contractors OS**, a multi-tenant SaaS platform for home servi
 
 1. **Read `docs/OS_SINGLE_SOURCE_OF_TRUTH.md`** — find what phase you are on, what is complete, what is next.
 2. **Read `docs/BUILD_PHASES.md`** — find the detailed instructions for the current phase.
-3. **Never re-do completed work.** If the SSOT says Phase 3 is done, start at Phase 4.
-4. **Never skip phases.** They are dependency-ordered. Phase 7 depends on Phase 6.
+3. **Read `docs/dotwin-brand-guide.md`** — all visual decisions are here. Follow it exactly.
+4. **Never re-do completed work.** If the SSOT says Phase 3 is done, start at Phase 4.
+5. **Never skip phases.** They are dependency-ordered. Phase 7 depends on Phase 6.
 
 ---
 
@@ -152,17 +168,44 @@ const result = await callEdgeFunction("ai/generate", {
 ### Styling
 - **Tailwind CSS** for all styling. No CSS modules, no styled-components.
 - **shadcn/ui** for all standard components (buttons, inputs, dialogs, tables, etc.)
-- **CSS Variables** for tenant-dynamic theming:
+- **Brand guide is the source of truth for all visual decisions.** See `docs/dotwin-brand-guide.md`.
+- **CSS Variables** — use the full variable set from the brand guide. Core palette is black/white/warm grays. Tenant overrides only apply to tenant-facing pages.
 ```css
 :root {
-  --color-primary: var(--tenant-primary, #1B2A4A);
-  --color-secondary: var(--tenant-secondary, #2E75B6);
-  --color-accent: var(--tenant-accent, #0D9488);
-  /* ... etc */
+  /* Core .win palette — see dotwin-brand-guide.md for full list */
+  --color-black: #000000;
+  --color-white: #FFFFFF;
+  --color-off-white: #FAFAFA;
+  --color-charcoal: #1A1A1A;
+  --color-gray-50: #F9F7F5;
+  --color-gray-100: #F0EDEA;
+  --color-gray-200: #E0DBD5;
+  --color-gray-400: #A39E97;
+  --color-gray-600: #6B6560;
+  --color-gray-800: #3D3834;
+  --color-success: #2D6A4F;
+  --color-warning: #CC8A00;
+  --color-error: #C1292E;
+  --color-info: #1B4965;
+  --color-accent: #D4A84B;
+  /* Semantic */
+  --color-primary: var(--tenant-primary, var(--color-black));
+  --color-primary-foreground: var(--color-white);
+  --color-bg: var(--color-off-white);
+  --color-surface: var(--color-white);
+  --color-text: var(--color-charcoal);
+  --color-text-secondary: var(--color-gray-600);
+  --color-border: var(--color-gray-200);
 }
 ```
-- **Fonts:** Load from Google Fonts CDN based on tenant_themes config. Default: `Inter` for body, `Plus Jakarta Sans` for headings.
-- **Dark mode:** Support via Tailwind `dark:` classes. Respect system preference.
+- **Fonts:**
+  - **Yeseva One** — Display/hero font. "Contractor" part of brand name. Large serif headings on marketing pages.
+  - **Outfit** — Everything else. Headings (600 weight), body (400), buttons (600 uppercase), labels (500).
+  - Load both via `next/font/google`.
+  - Tailwind config: `font-display` for Yeseva One, `font-body` for Outfit.
+- **Logo files** are in `public/logos/`. Use horizontal variant in headers, circular badge for favicons. Black on light, white on dark. See brand guide for full selection logic.
+- **Dark mode:** Support via Tailwind `dark:` classes. Use the dark mode palette from brand guide.
+- **No gradients. No large border-radius (max 8px). No illustrations. No playful animations.** The brand is black & white, sharp, and composed.
 
 ### AI Integration
 - **Every AI call** goes through the `ai/generate` edge function
@@ -350,23 +393,25 @@ Claude Code operates in **permissionless mode** for this project. That means:
 
 ## DESIGN PRINCIPLES FOR THE PUBLIC WEBSITE
 
+> **All visual details are defined in `docs/dotwin-brand-guide.md`. What follows are the strategic principles.**
+
 The public website is the **client acquisition machine.** It must:
 
-1. **Look premium.** Not like a template. Not like every other contractor site. Think luxury brand meets modern SaaS. Clean, confident, spacious.
+1. **Look premium.** Black & white foundation. Yeseva One serif headlines. Warm grays. Gold accent for premium moments. Not like a template. Not like every other contractor site.
 2. **Load instantly.** Sub-2-second LCP on mobile. Edge-cached. Optimized images.
-3. **Convert visitors.** Every page has a clear CTA. The booking flow is frictionless.
+3. **Convert visitors.** Every page has a clear CTA (black button, white text, Outfit 600 uppercase). The booking flow is frictionless.
 4. **Build trust.** Reviews, certifications, project gallery, team photos. Real, tangible proof.
 5. **Work perfectly on mobile.** 70%+ of traffic is mobile. Touch-friendly. No horizontal scroll.
-6. **Be dynamic per tenant.** Colors, fonts, logo, content — all tenant-branded. Same code, different face.
+6. **Be dynamic per tenant.** Tenant colors override `--color-primary` on their pages. Tenant fonts override headings/body. Tenant logo replaces .win logo. Same code, different face.
+7. **Show ".win" everywhere.** Every tenant site has "Powered by .win" in the footer with the horizontal logo at 16px height.
 
-### Visual Identity Guidelines
-- **Typography:** Bold, confident headings. Clean body text. Font pair loaded from tenant config.
-- **Color:** Tenant-branded primaries with carefully chosen neutrals. High contrast for readability.
-- **Spacing:** Generous whitespace. Let content breathe. Never feel cramped.
-- **Photography:** Full-bleed hero images. Before/after galleries with slider interaction.
-- **Icons:** Lucide icons. Consistent sizing and stroke width.
-- **Animations:** Subtle entrance animations on scroll. Smooth page transitions. Nothing flashy.
-- **Cards:** Clean card components with slight shadow, rounded corners, clear hierarchy.
+### Visual Rules (from brand guide)
+- **Black & white first.** Color only for functional meaning or gold accent.
+- **No gradients.** No drop shadows on cards (border or subtle elevation only). No border-radius > 8px.
+- **No illustrations, no cartoons.** The brand is photographic and typographic.
+- **Animations are composed.** Fade up on scroll (20px, 150ms). Hover transitions (150ms ease). No bounce, no spring, no playful motion.
+- **Admin sidebar is black** with white text. White .win logo at top.
+- **Lucide icons** only. Stroke width 1.5px.
 
 ---
 
@@ -392,10 +437,12 @@ supabase functions serve     # Serve edge functions locally
 ### Key Files
 | File | Purpose |
 |---|---|
-| `docs/OS_SINGLE_SOURCE_OF_TRUTH.md` | Living project state. READ FIRST. UPDATE AFTER EVERY PHASE. |
-| `docs/CLAUDE.md` | This file. Build instructions. |
-| `docs/BUILD_PHASES.md` | Detailed phase-by-phase build plan. |
+| `CLAUDE.md` | This file. Build instructions. READ FIRST. |
+| `docs/OS_SINGLE_SOURCE_OF_TRUTH.md` | Living project state. READ SECOND. UPDATE AFTER EVERY PHASE. |
+| `docs/BUILD_PHASES.md` | Detailed phase-by-phase build plan. READ THIRD. |
+| `docs/dotwin-brand-guide.md` | Brand guide — fonts, colors, logos, UI component rules. FOLLOW EXACTLY. |
 | `apps/web/middleware.ts` | Tenant resolution + auth |
 | `apps/web/lib/supabase/types.ts` | Generated database types |
 | `apps/web/lib/tenant/context.tsx` | TenantProvider |
 | `supabase/functions/_shared/` | Shared edge function utilities |
+| `public/logos/` | All .win logo variants (see brand guide for usage rules) |

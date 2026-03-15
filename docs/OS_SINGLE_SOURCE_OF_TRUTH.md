@@ -20,12 +20,31 @@
 
 | Field | Value |
 |---|---|
+| **Platform Brand** | .win |
 | **Project Name** | Contractors OS |
-| **Repository** | `github.com/[OWNER]/contractors-os` |
+| **Project Root** | `/home/user/Contractors-OS/` |
+| **Repository** | `github.com/[OWNER]/Contractors-OS` |
 | **Production URL** | `contractorsos.com` |
+| **Brand Guide** | `docs/dotwin-brand-guide.md` |
+| **Display Font** | Yeseva One (serif — hero headlines, "Contractor" brand text) |
+| **Body Font** | Outfit (sans-serif — headings, body, buttons, everything else) |
+| **Core Palette** | Black / White / Warm Grays / Gold Accent (#D4A84B) |
 | **First Tenant** | Grand Traverse Home Co. |
 | **First Tenant Domain** | `grandtraversehomeco.com` |
 | **First Tenant Subdomain** | `grandtraverse.contractorsos.com` |
+
+### Logo Files (in `public/logos/`)
+
+| File | Use |
+|---|---|
+| `win_black_logo-horizontal-nobg.png` | Primary horizontal — light backgrounds, headers |
+| `win_white_logo-horizontal-blackbg.png` | Horizontal — dark backgrounds, admin sidebar |
+| `win_black_logo-square-white_bg.png` | Square — light contexts |
+| `win_white_square_black_bg.png` | Square — dark contexts |
+| `win-black-circle-white-letters.png` | Circular badge — dark |
+| `win_white_circle_black_letters.png` | Circular badge — light |
+| `dot-win_circle_more_padding.png` | Circle icon — medium padding (avatars, profiles) |
+| `dot-win-circle-most_padding.png` | Circle icon — max padding (smallest contexts) |
 
 ---
 
@@ -161,6 +180,15 @@ contractors-os/
 │       ├── styles/
 │       │   └── globals.css
 │       ├── public/
+│       │   └── logos/
+│       │       ├── win_black_logo-horizontal-nobg.png
+│       │       ├── win_white_logo-horizontal-blackbg.png
+│       │       ├── win_black_logo-square-white_bg.png
+│       │       ├── win_white_square_black_bg.png
+│       │       ├── win-black-circle-white-letters.png
+│       │       ├── win_white_circle_black_letters.png
+│       │       ├── dot-win_circle_more_padding.png
+│       │       └── dot-win-circle-most_padding.png
 │       ├── next.config.js
 │       ├── tailwind.config.ts
 │       ├── tsconfig.json
@@ -220,9 +248,10 @@ contractors-os/
 │   ├── seed.sql
 │   └── config.toml
 ├── docs/
-│   ├── OS_SINGLE_SOURCE_OF_TRUTH.md    # THIS FILE
-│   ├── CLAUDE.md                        # Claude Code instructions
-│   └── BUILD_PHASES.md                  # Full build plan
+│   ├── OS_SINGLE_SOURCE_OF_TRUTH.md    # Living project state
+│   ├── BUILD_PHASES.md                  # Full build plan
+│   └── dotwin-brand-guide.md            # .win brand guide (fonts, colors, logos, UI rules)
+├── CLAUDE.md                            # Claude Code instructions (PROJECT ROOT)
 ├── .env.example
 ├── .gitignore
 ├── package.json
