@@ -42,7 +42,7 @@ export default function GuestPreviewPage() {
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-black">
-              <span className="text-sm font-bold text-white">CO</span>
+              <span className="text-[10px] font-bold tracking-wide text-white">C<span className="text-[#D4A84B]">&#x2022;</span>OS</span>
             </div>
             <span className="text-base font-semibold text-black">Client Portal</span>
           </div>

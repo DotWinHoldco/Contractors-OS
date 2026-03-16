@@ -67,7 +67,7 @@ export default function PortalLayout({
           {/* Left — Logo / Brand */}
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-black">
-              <span className="text-sm font-bold text-white">CO</span>
+              <span className="text-[10px] font-bold tracking-wide text-white">C<span className="text-[#D4A84B]">&#x2022;</span>OS</span>
             </div>
             <span className="hidden text-lg font-semibold text-black sm:inline">
               Client Portal
