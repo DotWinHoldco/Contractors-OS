@@ -35,7 +35,7 @@ export default function FeatureFlagsPage() {
         .from("feature_flags")
         .select("*")
         .order("flag_key");
-      setFlags(data || []);
+      setFlags((data as unknown as FeatureFlag[]) || []);
       setLoading(false);
     }
     fetch();
@@ -45,7 +45,7 @@ export default function FeatureFlagsPage() {
     const supabase = createClient();
     await supabase
       .from("feature_flags")
-      .update({ is_enabled: enabled })
+      .update({ status: enabled ? "enabled" : "disabled" })
       .eq("id", id);
     setFlags((prev) =>
       prev.map((f) => (f.id === id ? { ...f, is_enabled: enabled } : f))

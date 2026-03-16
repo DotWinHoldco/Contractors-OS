@@ -19,11 +19,11 @@ import { Plus, Search } from "lucide-react";
 
 interface TenantRow {
   id: string;
-  name: string;
+  company_name: string;
   slug: string;
-  status: string;
-  plan: string;
-  created_at: string;
+  status: string | null;
+  plan: string | null;
+  created_at: string | null;
   phone: string | null;
   email: string | null;
 }
@@ -38,7 +38,7 @@ export default function TenantsPage() {
       const supabase = createClient();
       const { data } = await supabase
         .from("tenants")
-        .select("id, name, slug, status, plan, created_at, phone, email")
+        .select("id, company_name, slug, status, plan, created_at, phone, email")
         .order("created_at", { ascending: false });
       setTenants(data || []);
       setLoading(false);
@@ -48,7 +48,7 @@ export default function TenantsPage() {
 
   const filtered = tenants.filter(
     (t) =>
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.company_name.toLowerCase().includes(search.toLowerCase()) ||
       t.slug.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -117,7 +117,7 @@ export default function TenantsPage() {
                         href={`/platform/tenants/${tenant.id}`}
                         className="font-medium text-[#1a1a1a] hover:underline"
                       >
-                        {tenant.name}
+                        {tenant.company_name}
                       </Link>
                     </TableCell>
                     <TableCell className="text-[#888]">{tenant.slug}</TableCell>
@@ -125,7 +125,7 @@ export default function TenantsPage() {
                       <Badge
                         className={cn(
                           "text-xs font-semibold",
-                          statusColor[tenant.status] || "bg-[#e0dbd5]"
+                          statusColor[tenant.status || ""] || "bg-[#e0dbd5]"
                         )}
                       >
                         {tenant.status}
@@ -135,7 +135,7 @@ export default function TenantsPage() {
                       {tenant.plan || "—"}
                     </TableCell>
                     <TableCell className="text-[#888]">
-                      {new Date(tenant.created_at).toLocaleDateString()}
+                      {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : "—"}
                     </TableCell>
                   </TableRow>
                 ))

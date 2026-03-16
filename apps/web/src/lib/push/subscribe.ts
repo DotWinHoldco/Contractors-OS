@@ -71,13 +71,13 @@ export async function subscribeToPush(userId: string, tenantId: string): Promise
     {
       user_id: userId,
       tenant_id: tenantId,
-      endpoint: subscriptionJson.endpoint,
+      endpoint: subscriptionJson.endpoint!,
       p256dh: subscriptionJson.keys?.p256dh ?? "",
       auth: subscriptionJson.keys?.auth ?? "",
       device_type: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? "mobile" : "desktop",
       browser: navigator.userAgent.split(" ").pop()?.split("/")[0] ?? "unknown",
       is_active: true,
-    },
+    } as never,
     { onConflict: "user_id,endpoint" }
   );
 

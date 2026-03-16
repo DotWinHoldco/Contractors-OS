@@ -65,7 +65,7 @@ export default function NewTenantPage() {
     const { data: tenant, error: tenantError } = await supabase
       .from("tenants")
       .insert({
-        name: form.name,
+        company_name: form.name,
         slug: form.slug,
         phone: form.phone,
         email: form.email,
@@ -73,9 +73,9 @@ export default function NewTenantPage() {
         service_area_description: form.service_area,
         tagline: form.tagline,
         address_line1: form.address_line1,
-        address_city: form.address_city,
-        address_state: form.address_state,
-        address_zip: form.address_zip,
+        city: form.address_city,
+        state: form.address_state,
+        zip_code: form.address_zip,
         status: "active",
         plan: "professional",
       })

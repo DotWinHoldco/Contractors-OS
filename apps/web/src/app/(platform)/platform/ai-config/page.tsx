@@ -38,7 +38,7 @@ export default function AIConfigPage() {
         .from("ai_model_registry")
         .select("*")
         .order("provider, display_name");
-      setModels(data || []);
+      setModels((data as unknown as AIModel[]) || []);
       setLoading(false);
     }
     fetch();

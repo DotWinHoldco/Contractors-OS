@@ -16,9 +16,9 @@ interface DashboardStats {
   totalProjects: number;
   recentTenants: Array<{
     id: string;
-    name: string;
-    status: string;
-    created_at: string;
+    company_name: string;
+    status: string | null;
+    created_at: string | null;
   }>;
 }
 
@@ -39,7 +39,7 @@ export default function PlatformDashboardPage() {
 
       const { data: tenants } = await supabase
         .from("tenants")
-        .select("id, name, status, created_at")
+        .select("id, company_name, status, created_at")
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -150,7 +150,7 @@ export default function PlatformDashboardPage() {
                   className="flex items-center justify-between rounded-md border border-[#e0dbd5] px-4 py-3 transition-colors hover:bg-[#f8f8f8]"
                 >
                   <span className="text-sm font-medium text-[#1a1a1a]">
-                    {tenant.name}
+                    {tenant.company_name}
                   </span>
                   <Badge
                     variant={
