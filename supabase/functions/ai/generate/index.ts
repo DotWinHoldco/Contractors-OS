@@ -100,7 +100,7 @@ serve(async (req: Request) => {
       const data = await response.json();
       result = data.content?.[0]?.text ?? "";
     } else if (config.provider === "openai") {
-      const apiKey = Deno.env.get("OPENAI_API_KEY");
+      const apiKey = Deno.env.get("OPEN_AI_API_KEY");
       if (!apiKey) {
         return new Response(
           JSON.stringify({ error: "OpenAI API key not configured" }),

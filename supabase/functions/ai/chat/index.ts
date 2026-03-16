@@ -106,7 +106,7 @@ serve(async (req: Request) => {
       const data = await response.json();
       assistantMessage = data.content?.[0]?.text ?? "I couldn't generate a response.";
     } else if (config.provider === "openai") {
-      const apiKey = Deno.env.get("OPENAI_API_KEY");
+      const apiKey = Deno.env.get("OPEN_AI_API_KEY");
       if (!apiKey) throw new Error("OpenAI API key not configured");
 
       const response = await fetch(

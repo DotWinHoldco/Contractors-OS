@@ -109,11 +109,14 @@ export default function BookPage() {
     setChatInput("");
 
     try {
+      // Read conversationId from current store state (not stale closure)
+      const currentConvId = useBookingStore.getState().conversationId;
+
       const res = await callEdgeFunction<{ message: string; conversation_id: string }>(
         "ai-chat",
         {
           message,
-          conversation_id: store.conversationId,
+          conversation_id: currentConvId,
           context: {
             project_type: projectTypeLabel,
             scope,

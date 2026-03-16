@@ -207,9 +207,9 @@ Return ONLY valid JSON. No markdown, no code fences.`;
         metadata: { project_id },
       });
     } else if (model.provider === "openai") {
-      const openaiKey = Deno.env.get("OPENAI_API_KEY");
+      const openaiKey = Deno.env.get("OPEN_AI_API_KEY");
       if (!openaiKey) {
-        throw new Error("OPENAI_API_KEY not configured");
+        throw new Error("OPEN_AI_API_KEY not configured");
       }
 
       const aiResponse = await fetch(

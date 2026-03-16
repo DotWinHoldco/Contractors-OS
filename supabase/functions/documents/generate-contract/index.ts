@@ -85,7 +85,7 @@ Return the contract as a JSON object with keys: parties, scope, schedule, pricin
       const data = await response.json();
       result = data.content?.[0]?.text ?? "";
     } else {
-      const apiKey = Deno.env.get("OPENAI_API_KEY");
+      const apiKey = Deno.env.get("OPEN_AI_API_KEY");
       if (!apiKey) throw new Error("OpenAI API key not configured");
 
       const response = await fetch(
