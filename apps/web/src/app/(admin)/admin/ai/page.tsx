@@ -1,204 +1,132 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
+import { callEdgeFunction } from "@/lib/supabase/edge";
+import { useAppUser } from "@/lib/hooks/use-app-user";
+import { toast } from "sonner";
 import {
   Send,
-  Bot,
   User,
   Plus,
   Sparkles,
-  MessageSquare,
-  Clock,
   FolderKanban,
+  Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface Message {
+interface AiMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  timestamp: string;
+  created_at: string;
 }
-
-interface Conversation {
-  id: string;
-  title: string;
-  lastMessage: string;
-  time: string;
-  context?: string;
-}
-
-const conversations: Conversation[] = [
-  {
-    id: "c1",
-    title: "Kitchen Renovation Scope",
-    lastMessage: "The scope includes demolition of existing...",
-    time: "10 min ago",
-    context: "Project: Kitchen Renovation",
-  },
-  {
-    id: "c2",
-    title: "Deck Estimate Help",
-    lastMessage: "Based on 400 sqft composite deck...",
-    time: "2 hours ago",
-    context: "Project: Composite Deck Build",
-  },
-  {
-    id: "c3",
-    title: "Contract Clause Review",
-    lastMessage: "The change order clause should specify...",
-    time: "Yesterday",
-  },
-];
-
-const mockMessages: Record<string, Message[]> = {
-  c1: [
-    {
-      id: "m1",
-      role: "user",
-      content:
-        "Generate a detailed scope of work for the Johnson kitchen renovation. They want to remove a wall between kitchen and dining room, install new cabinets, quartz countertops, and update all appliances.",
-      timestamp: "10:32 AM",
-    },
-    {
-      id: "m2",
-      role: "assistant",
-      content: `Here's a comprehensive scope of work for the Johnson Kitchen Renovation:
-
-**1. Demolition & Preparation**
-- Remove existing cabinetry, countertops, and backsplash
-- Remove non-load-bearing wall between kitchen and dining room (verify with structural engineer)
-- Remove existing flooring in affected area
-- Protect adjacent rooms with dust barriers
-
-**2. Structural**
-- Install LVL beam to support load after wall removal (per engineer specs)
-- Frame new header with proper support columns
-- Patch and finish ceiling where wall was removed
-
-**3. Electrical & Plumbing**
-- Relocate circuits from removed wall
-- Add 4 new dedicated circuits for appliances
-- Install under-cabinet LED lighting (8 fixtures)
-- Relocate plumbing for new sink location
-- Add water line for refrigerator ice maker
-
-**4. Cabinetry & Countertops**
-- Install 22 linear feet of custom shaker-style cabinets
-- 42" upper cabinets with soft-close hinges
-- Pull-out drawers in base cabinets
-- Quartz countertops (Calacatta pattern) with undermount sink cutout
-- Island: 4' x 6' with seating overhang on one side
-
-**5. Appliances**
-- 36" gas range with hood vent (ducted to exterior)
-- French door refrigerator
-- Dishwasher
-- Microwave drawer
-
-**Estimated Duration:** 6-8 weeks
-**Estimated Budget Range:** $45,000 - $62,000`,
-      timestamp: "10:33 AM",
-    },
-    {
-      id: "m3",
-      role: "user",
-      content:
-        "Can you add a section for flooring? They want luxury vinyl plank throughout.",
-      timestamp: "10:35 AM",
-    },
-    {
-      id: "m4",
-      role: "assistant",
-      content: `**6. Flooring**
-- Remove existing tile flooring in kitchen (approx. 180 sqft)
-- Level subfloor as needed (self-leveling compound)
-- Install luxury vinyl plank flooring (waterproof, 7mm+ thickness)
-- Extend LVP into dining area for seamless transition (approx. 120 sqft)
-- Install matching transition strips at doorways
-- Quarter-round molding at all perimeters
-
-**Material Spec:** Recommend Shaw Floorté Pro or equivalent — waterproof core, 20mil+ wear layer, commercial-grade warranty.
-
-**Additional Cost Estimate:** $2,800 - $4,200 (materials + labor for ~300 sqft)
-
-This brings the total project estimate to **$47,800 - $66,200**.`,
-      timestamp: "10:35 AM",
-    },
-  ],
-  c2: [
-    {
-      id: "m5",
-      role: "user",
-      content:
-        "What should I estimate for a 400 sqft composite deck with stairs and railing?",
-      timestamp: "2:15 PM",
-    },
-    {
-      id: "m6",
-      role: "assistant",
-      content: `For a 400 sqft composite deck, here's a detailed breakdown:
-
-**Materials:**
-- Composite decking (Trex/TimberTech): $3,200 - $4,800
-- Pressure-treated framing lumber: $1,200 - $1,600
-- Concrete footings (8-10): $600 - $900
-- Composite railing system (~60 linear ft): $2,400 - $3,600
-- Stairs (assuming 4-5 steps): $800 - $1,200
-- Hardware, fasteners, joist tape: $400 - $600
-
-**Labor:**
-- Footings & framing: $2,000 - $2,800
-- Decking installation: $1,600 - $2,400
-- Railing installation: $1,000 - $1,500
-- Stairs: $600 - $900
-- Cleanup & final inspection: $200 - $300
-
-**Total Estimate: $14,000 - $19,800**
-
-**Timeline:** 5-8 days with a 2-person crew
-
-I'd recommend pricing this at **$16,500** as your mid-range quote, giving you a healthy margin around 28%.`,
-      timestamp: "2:16 PM",
-    },
-  ],
-  c3: [
-    {
-      id: "m7",
-      role: "user",
-      content:
-        "Review this change order clause and suggest improvements for protecting us better.",
-      timestamp: "Yesterday",
-    },
-    {
-      id: "m8",
-      role: "assistant",
-      content: `I'd recommend strengthening your change order clause with these key additions:
-
-1. **Written Approval Required** — No work proceeds on any change without a signed Change Order form from both parties.
-
-2. **Pricing Transparency** — Include that change orders will detail: additional materials, labor hours at specified rates, any schedule impact, and markup percentage.
-
-3. **Timeline Impact** — State explicitly that approved changes may extend the completion date by a proportional amount, and this extension is automatic upon approval.
-
-4. **Cost Markup** — Standard practice is 15-20% markup on change order materials and subcontractor costs. Specify your rate clearly.
-
-5. **Cumulative Threshold** — If cumulative changes exceed 10% of original contract value, either party may request a contract amendment.
-
-Want me to draft the full revised clause?`,
-      timestamp: "Yesterday",
-    },
-  ],
-};
 
 export default function AIChatPage() {
-  const [selectedConvo, setSelectedConvo] = useState("c1");
+  const { appUser } = useAppUser();
+  const tenantId = appUser?.tenantId ?? undefined;
+  const userId = appUser?.id ?? undefined;
+  const supabase = createClient();
+  const qc = useQueryClient();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
-  const messages = mockMessages[selectedConvo] || [];
-  const activeConvo = conversations.find((c) => c.id === selectedConvo);
+
+  // Fetch sessions (ai_generations grouped by recent prompts — we treat each generation as a "conversation")
+  const { data: sessions, isLoading: loadingSessions } = useQuery({
+    queryKey: ["ai-sessions", tenantId],
+    queryFn: async () => {
+      let q = supabase
+        .from("ai_generations")
+        .select("id, prompt, output, generation_type, created_at, model_key, module");
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q.order("created_at", { ascending: false }).limit(50);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tenantId,
+  });
+
+  const sessionList = sessions ?? [];
+
+  // Find the selected generation's details
+  const selectedGeneration = selectedSessionId
+    ? sessionList.find((s) => (s.id as string) === selectedSessionId)
+    : null;
+
+  // Build messages from selected generation
+  const messages: AiMessage[] = selectedGeneration
+    ? [
+        {
+          id: `${selectedGeneration.id}-prompt`,
+          role: "user" as const,
+          content: selectedGeneration.prompt as string,
+          created_at: selectedGeneration.created_at as string,
+        },
+        ...(selectedGeneration.output
+          ? [
+              {
+                id: `${selectedGeneration.id}-output`,
+                role: "assistant" as const,
+                content: selectedGeneration.output as string,
+                created_at: selectedGeneration.created_at as string,
+              },
+            ]
+          : []),
+      ]
+    : [];
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length, selectedSessionId]);
+
+  // Send new message via edge function
+  const sendMutation = useMutation({
+    mutationFn: async (message: string) => {
+      const result = await callEdgeFunction<Record<string, unknown>>("ai-chat", {
+        message,
+        tenant_id: tenantId,
+        user_id: userId,
+      });
+      return result;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ai-sessions", tenantId] });
+      setInputValue("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const handleSend = useCallback(() => {
+    const trimmed = inputValue.trim();
+    if (!trimmed || sendMutation.isPending) return;
+    sendMutation.mutate(trimmed);
+  }, [inputValue, sendMutation]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const formatTime = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  };
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4">
@@ -206,63 +134,96 @@ export default function AIChatPage() {
       <div className="hidden w-72 shrink-0 flex-col border-r border-[#e0dbd5] pr-4 lg:flex">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-black">Conversations</h2>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setSelectedSessionId(null)}
+          >
             <Plus className="h-4 w-4" strokeWidth={1.5} />
           </Button>
         </div>
         <div className="flex-1 space-y-1 overflow-y-auto">
-          {conversations.map((convo) => (
-            <button
-              key={convo.id}
-              onClick={() => setSelectedConvo(convo.id)}
-              className={`w-full rounded-lg px-3 py-3 text-left transition-colors ${
-                selectedConvo === convo.id
-                  ? "bg-black text-white"
-                  : "hover:bg-[#f8f8f8]"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span
-                  className={`text-sm font-medium ${
-                    selectedConvo === convo.id ? "text-white" : "text-black"
+          {loadingSessions ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="mb-2 h-16 w-full rounded-lg" />
+            ))
+          ) : sessionList.length === 0 ? (
+            <p className="px-3 py-6 text-center text-sm text-[#888]">
+              No conversations yet. Start a new one below.
+            </p>
+          ) : (
+            sessionList.map((session) => {
+              const prompt = session.prompt as string;
+              const title = prompt.length > 40 ? prompt.slice(0, 40) + "..." : prompt;
+              const preview = session.output
+                ? String(session.output).slice(0, 60) + "..."
+                : "Generating...";
+              const isSelected = selectedSessionId === (session.id as string);
+              return (
+                <button
+                  key={session.id as string}
+                  onClick={() => setSelectedSessionId(session.id as string)}
+                  className={`w-full rounded-lg px-3 py-3 text-left transition-colors ${
+                    isSelected ? "bg-black text-white" : "hover:bg-[#f8f8f8]"
                   }`}
                 >
-                  {convo.title}
-                </span>
-                <span
-                  className={`text-xs ${
-                    selectedConvo === convo.id ? "text-white/60" : "text-[#888]"
-                  }`}
-                >
-                  {convo.time}
-                </span>
-              </div>
-              <p
-                className={`mt-1 truncate text-xs ${
-                  selectedConvo === convo.id ? "text-white/70" : "text-[#888]"
-                }`}
-              >
-                {convo.lastMessage}
-              </p>
-            </button>
-          ))}
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-sm font-medium ${
+                        isSelected ? "text-white" : "text-black"
+                      }`}
+                    >
+                      {title}
+                    </span>
+                    <span
+                      className={`text-xs ${
+                        isSelected ? "text-white/60" : "text-[#888]"
+                      }`}
+                    >
+                      {formatTime(session.created_at as string)}
+                    </span>
+                  </div>
+                  <p
+                    className={`mt-1 truncate text-xs ${
+                      isSelected ? "text-white/70" : "text-[#888]"
+                    }`}
+                  >
+                    {preview}
+                  </p>
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
 
       {/* Main Chat Area */}
       <div className="flex flex-1 flex-col">
         {/* Context Bar */}
-        {activeConvo?.context && (
+        {selectedGeneration ? (
           <div className="mb-3 flex items-center gap-2 rounded-lg border border-[#e0dbd5] bg-[#f8f8f8] px-3 py-2">
             <FolderKanban className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
             <span className="text-xs font-medium text-[#888]">
-              {activeConvo.context}
+              {(selectedGeneration.generation_type as string) ?? "Chat"} &middot; {(selectedGeneration.model_key as string) ?? "AI"}
             </span>
           </div>
-        )}
+        ) : null}
 
         {/* Messages */}
         <div className="flex-1 space-y-4 overflow-y-auto pb-4">
+          {messages.length === 0 && !sendMutation.isPending ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center">
+                <Sparkles className="mx-auto h-10 w-10 text-[#e0dbd5]" strokeWidth={1.5} />
+                <p className="mt-3 text-sm font-medium text-black">AI Assistant</p>
+                <p className="mt-1 text-sm text-[#888]">
+                  Ask anything about your projects, estimates, contracts...
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -270,11 +231,11 @@ export default function AIChatPage() {
                 msg.role === "user" ? "justify-end" : "justify-start"
               }`}
             >
-              {msg.role === "assistant" && (
+              {msg.role === "assistant" ? (
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f8f8f8] border border-[#e0dbd5]">
                   <Sparkles className="h-4 w-4 text-black" strokeWidth={1.5} />
                 </div>
-              )}
+              ) : null}
               <div
                 className={`max-w-[75%] rounded-lg px-4 py-3 ${
                   msg.role === "user"
@@ -290,16 +251,29 @@ export default function AIChatPage() {
                     msg.role === "user" ? "text-white/50" : "text-[#888]"
                   }`}
                 >
-                  {msg.timestamp}
+                  {formatTime(msg.created_at)}
                 </div>
               </div>
-              {msg.role === "user" && (
+              {msg.role === "user" ? (
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black">
                   <User className="h-4 w-4 text-white" strokeWidth={1.5} />
                 </div>
-              )}
+              ) : null}
             </div>
           ))}
+
+          {sendMutation.isPending ? (
+            <div className="flex gap-3 justify-start">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f8f8f8] border border-[#e0dbd5]">
+                <Loader2 className="h-4 w-4 text-black animate-spin" strokeWidth={1.5} />
+              </div>
+              <div className="border border-[#e0dbd5] bg-[#f8f8f8] rounded-lg px-4 py-3">
+                <p className="text-sm text-[#888]">Thinking...</p>
+              </div>
+            </div>
+          ) : null}
+
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input */}
@@ -311,10 +285,17 @@ export default function AIChatPage() {
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setInputValue(e.target.value)
               }
+              onKeyDown={handleKeyDown}
               className="border-[#e0dbd5] pr-10"
+              disabled={sendMutation.isPending}
             />
           </div>
-          <Button className="bg-black text-white hover:bg-black/90" size="icon">
+          <Button
+            className="bg-black text-white hover:bg-black/90"
+            size="icon"
+            onClick={handleSend}
+            disabled={!inputValue.trim() || sendMutation.isPending}
+          >
             <Send className="h-4 w-4" strokeWidth={1.5} />
           </Button>
         </div>
@@ -327,6 +308,7 @@ export default function AIChatPage() {
                 key={cmd}
                 variant="outline"
                 className="cursor-pointer border-[#e0dbd5] text-[#888] hover:bg-[#f8f8f8] hover:text-black"
+                onClick={() => setInputValue(cmd + " ")}
               >
                 {cmd}
               </Badge>

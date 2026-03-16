@@ -1,54 +1,84 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
+import { useAppUser } from "@/lib/hooks/use-app-user";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
   Search,
   Pencil,
+  Trash2,
 } from "lucide-react";
 
-interface Material {
-  id: string;
-  name: string;
-  category: string;
-  unit: string;
-  unitCost: string;
-  supplier: string;
-}
-
-const mockMaterials: Material[] = [
-  { id: "1", name: "Quartz Countertop", category: "Countertops", unit: "sq ft", unitCost: "$85.00", supplier: "StoneWorks Inc." },
-  { id: "2", name: "Subway Tile (3x6)", category: "Tile", unit: "sq ft", unitCost: "$4.50", supplier: "TileMax Supply" },
-  { id: "3", name: "Oak Hardwood Flooring", category: "Flooring", unit: "sq ft", unitCost: "$7.25", supplier: "Northland Lumber" },
-  { id: "4", name: "Composite Decking Board", category: "Decking", unit: "linear ft", unitCost: "$5.80", supplier: "BuildRight Materials" },
-  { id: "5", name: "Architectural Shingles", category: "Roofing", unit: "bundle", unitCost: "$38.00", supplier: "ABC Supply" },
-  { id: "6", name: "Vinyl Siding Panel", category: "Siding", unit: "sq ft", unitCost: "$3.20", supplier: "ABC Supply" },
-  { id: "7", name: "Spray Foam Insulation", category: "Insulation", unit: "board ft", unitCost: "$1.50", supplier: "InsulPro" },
-  { id: "8", name: "LVP Flooring (Waterproof)", category: "Flooring", unit: "sq ft", unitCost: "$4.75", supplier: "FloorCraft Direct" },
-];
-
 export default function MaterialsPage() {
+  const { appUser } = useAppUser();
+  const tenantId = appUser?.tenantId ?? undefined;
+  const supabase = createClient();
+  const qc = useQueryClient();
+
   const [search, setSearch] = useState("");
 
-  const filtered = mockMaterials.filter(
+  const { data: materials, isLoading } = useQuery({
+    queryKey: ["material-library", tenantId],
+    queryFn: async () => {
+      let q = supabase
+        .from("material_library")
+        .select("id, name, category, unit, unit_cost, supplier_name, brand, is_active, created_at");
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q.is("deleted_at", null).order("name", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tenantId,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("material_library")
+        .update({ deleted_at: new Date().toISOString() } as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["material-library", tenantId] });
+      toast.success("Material removed");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const materialList = materials ?? [];
+  const filtered = materialList.filter(
     (m) =>
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.category.toLowerCase().includes(search.toLowerCase()) ||
-      m.supplier.toLowerCase().includes(search.toLowerCase())
+      (m.name as string).toLowerCase().includes(search.toLowerCase()) ||
+      ((m.category as string) ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      ((m.supplier_name as string) ?? "").toLowerCase().includes(search.toLowerCase())
   );
+
+  const formatCost = (cost: number | null) => {
+    if (cost === null || cost === undefined) return "--";
+    return `$${cost.toFixed(2)}`;
+  };
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-black">Material Library</h1>
-          <p className="text-sm text-[#888]">
-            {mockMaterials.length} materials in library
-          </p>
+          {isLoading ? (
+            <Skeleton className="mt-1 h-5 w-40" />
+          ) : (
+            <p className="text-sm text-[#888]">
+              {materialList.length} materials in library
+            </p>
+          )}
         </div>
         <Button
           size="sm"
@@ -73,68 +103,84 @@ export default function MaterialsPage() {
       </div>
 
       {/* Table */}
-      <Card className="border border-[#e0dbd5] shadow-none">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[#e0dbd5] text-left">
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Name
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Category
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Unit
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Unit Cost
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Supplier
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e0dbd5]">
-              {filtered.map((material) => (
-                <tr key={material.id} className="hover:bg-[#f8f8f8]">
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-black">
-                      {material.name}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="secondary" className="text-[10px]">
-                      {material.category}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {material.unit}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-black">
-                    {material.unitCost}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {material.supplier}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-[#888] hover:text-black"
-                    >
-                      <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
-                    </Button>
-                  </td>
+      {isLoading ? (
+        <Card className="border border-[#e0dbd5] shadow-none p-4 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </Card>
+      ) : filtered.length === 0 ? (
+        <Card className="border border-[#e0dbd5] shadow-none">
+          <div className="flex flex-col items-center justify-center py-16">
+            <p className="text-sm text-[#888]">
+              {search ? "No materials match your search." : "No materials in library yet."}
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <Card className="border border-[#e0dbd5] shadow-none">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#e0dbd5] text-left">
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Name</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Category</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Unit</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Unit Cost</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Supplier</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody className="divide-y divide-[#e0dbd5]">
+                {filtered.map((material) => (
+                  <tr key={material.id as string} className="hover:bg-[#f8f8f8]">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-medium text-black">{material.name as string}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      {(material.category as string | null) ? (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {material.category as string}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-[#888]">--</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      {(material.unit as string | null) ? String(material.unit).replace(/_/g, " ") : "--"}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-black">
+                      {formatCost(material.unit_cost as number | null)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      {(material.supplier_name as string | null) ?? "--"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-[#888] hover:text-black"
+                        >
+                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-[#888] hover:text-red-600"
+                          onClick={() => deleteMutation.mutate(material.id as string)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

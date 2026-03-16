@@ -1,15 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
+import { useAppUser } from "@/lib/hooks/use-app-user";
+import { toast } from "sonner";
 import {
   Webhook,
   Plus,
@@ -18,92 +13,63 @@ import {
   Play,
   Check,
   X,
-  Copy,
-  ExternalLink,
-  Pause,
   MoreHorizontal,
 } from "lucide-react";
-
-const EVENT_TYPES = [
-  "lead.created",
-  "lead.converted",
-  "project.created",
-  "project.completed",
-  "invoice.created",
-  "invoice.paid",
-  "payment.received",
-  "estimate.approved",
-] as const;
-
-interface DeliveryLog {
-  id: string;
-  timestamp: string;
-  status: "success" | "failed";
-  responseCode: number;
-  duration: string;
-}
-
-interface WebhookEntry {
-  id: string;
-  url: string;
-  events: string[];
-  status: "active" | "paused";
-  successRate: number;
-  lastTriggered: string;
-  deliveries: DeliveryLog[];
-}
-
-const MOCK_WEBHOOKS: WebhookEntry[] = [
-  {
-    id: "wh_1",
-    url: "https://hooks.zapier.com/hooks/catch/123456/abcdef/",
-    events: ["project.created", "invoice.paid"],
-    status: "active",
-    successRate: 98,
-    lastTriggered: "2 hours ago",
-    deliveries: [
-      { id: "d1", timestamp: "2026-03-15 14:32:01", status: "success", responseCode: 200, duration: "120ms" },
-      { id: "d2", timestamp: "2026-03-15 13:15:44", status: "success", responseCode: 200, duration: "98ms" },
-      { id: "d3", timestamp: "2026-03-15 10:02:18", status: "failed", responseCode: 500, duration: "2,340ms" },
-      { id: "d4", timestamp: "2026-03-14 22:45:33", status: "success", responseCode: 200, duration: "145ms" },
-      { id: "d5", timestamp: "2026-03-14 18:20:01", status: "success", responseCode: 200, duration: "110ms" },
-    ],
-  },
-  {
-    id: "wh_2",
-    url: "https://api.example.com/webhooks",
-    events: ["lead.created", "lead.converted"],
-    status: "active",
-    successRate: 100,
-    lastTriggered: "1 day ago",
-    deliveries: [
-      { id: "d6", timestamp: "2026-03-14 09:12:45", status: "success", responseCode: 200, duration: "87ms" },
-      { id: "d7", timestamp: "2026-03-13 16:33:12", status: "success", responseCode: 200, duration: "92ms" },
-      { id: "d8", timestamp: "2026-03-13 11:05:28", status: "success", responseCode: 200, duration: "103ms" },
-      { id: "d9", timestamp: "2026-03-12 14:48:55", status: "success", responseCode: 200, duration: "78ms" },
-      { id: "d10", timestamp: "2026-03-12 08:22:10", status: "success", responseCode: 200, duration: "95ms" },
-    ],
-  },
-  {
-    id: "wh_3",
-    url: "https://n8n.internal/webhook/contractor-sync",
-    events: EVENT_TYPES.slice(),
-    status: "paused",
-    successRate: 85,
-    lastTriggered: "3 days ago",
-    deliveries: [
-      { id: "d11", timestamp: "2026-03-12 17:55:30", status: "success", responseCode: 200, duration: "215ms" },
-      { id: "d12", timestamp: "2026-03-12 15:40:02", status: "failed", responseCode: 502, duration: "5,001ms" },
-      { id: "d13", timestamp: "2026-03-12 12:22:18", status: "success", responseCode: 200, duration: "178ms" },
-      { id: "d14", timestamp: "2026-03-12 09:10:44", status: "failed", responseCode: 408, duration: "10,000ms" },
-      { id: "d15", timestamp: "2026-03-11 21:33:55", status: "success", responseCode: 200, duration: "134ms" },
-    ],
-  },
-];
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function WebhooksPage() {
-  const [webhooks] = useState(MOCK_WEBHOOKS);
+  const { appUser } = useAppUser();
+  const tenantId = appUser?.tenantId ?? undefined;
+  const supabase = createClient();
+  const qc = useQueryClient();
+
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const { data: webhooks, isLoading } = useQuery({
+    queryKey: ["webhooks", tenantId],
+    queryFn: async () => {
+      let q = supabase
+        .from("webhooks")
+        .select("id, name, url, events, is_active, failure_count, last_response_code, last_triggered_at, created_at");
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q.order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tenantId,
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase
+        .from("webhooks")
+        .update({ is_active } as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["webhooks", tenantId] });
+      toast.success("Webhook updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("webhooks")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["webhooks", tenantId] });
+      toast.success("Webhook deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const webhookList = webhooks ?? [];
 
   function toggleRow(id: string) {
     setExpandedRow((prev) => (prev === id ? null : id));
@@ -112,6 +78,17 @@ export default function WebhooksPage() {
   function truncateUrl(url: string, max = 45) {
     return url.length > max ? url.slice(0, max) + "..." : url;
   }
+
+  const formatTimeAgo = (dateStr: string | null) => {
+    if (!dateStr) return "Never";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -134,112 +111,119 @@ export default function WebhooksPage() {
         </button>
       </div>
 
-      {/* Event Types Reference */}
-      <div
-        className="border p-4"
-        style={{ borderColor: "#e0dbd5", borderRadius: "8px", backgroundColor: "#f8f8f8" }}
-      >
-        <p className="mb-2 text-xs font-medium" style={{ color: "#888" }}>
-          Available event types
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {EVENT_TYPES.map((event) => (
-            <span
-              key={event}
-              className="inline-flex h-6 items-center border px-2 text-xs"
-              style={{
-                borderColor: "#e0dbd5",
-                borderRadius: "4px",
-                color: "#888",
-                backgroundColor: "#fff",
-              }}
-            >
-              {event}
-            </span>
+      {/* Webhooks Table */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
           ))}
         </div>
-      </div>
+      ) : webhookList.length === 0 ? (
+        <div
+          className="flex flex-col items-center justify-center rounded-lg border py-16"
+          style={{ borderColor: "#e0dbd5" }}
+        >
+          <Webhook size={40} strokeWidth={1} style={{ color: "#e0dbd5" }} />
+          <p className="mt-3 text-sm font-medium text-black">No webhooks configured</p>
+          <p className="mt-1 text-sm" style={{ color: "#888" }}>
+            Create a webhook to send event notifications to external services.
+          </p>
+        </div>
+      ) : (
+        <div
+          className="overflow-hidden border"
+          style={{ borderColor: "#e0dbd5", borderRadius: "8px" }}
+        >
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ backgroundColor: "#f8f8f8", borderBottom: "1px solid #e0dbd5" }}>
+                <th className="w-8 px-3 py-2.5 text-left" />
+                <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider" style={{ color: "#888" }}>
+                  Endpoint
+                </th>
+                <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider" style={{ color: "#888" }}>
+                  Events
+                </th>
+                <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider" style={{ color: "#888" }}>
+                  Status
+                </th>
+                <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider" style={{ color: "#888" }}>
+                  Last Triggered
+                </th>
+                <th className="px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wider" style={{ color: "#888" }}>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {webhookList.map((webhook) => {
+                const id = webhook.id as string;
+                const url = webhook.url as string;
+                const events = (webhook.events as string[]) ?? [];
+                const isActive = (webhook.is_active as boolean | null) !== false;
+                const lastTriggered = webhook.last_triggered_at as string | null;
+                const lastCode = webhook.last_response_code as number | null;
+                const isExpanded = expandedRow === id;
 
-      {/* Webhooks Table */}
-      <div
-        className="overflow-hidden border"
-        style={{ borderColor: "#e0dbd5", borderRadius: "8px" }}
-      >
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ backgroundColor: "#f8f8f8", borderBottom: "1px solid #e0dbd5" }}>
-              <th className="w-8 px-3 py-2.5 text-left" />
-              <th
-                className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
-                style={{ color: "#888" }}
-              >
-                Endpoint
-              </th>
-              <th
-                className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
-                style={{ color: "#888" }}
-              >
-                Events
-              </th>
-              <th
-                className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
-                style={{ color: "#888" }}
-              >
-                Status
-              </th>
-              <th
-                className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
-                style={{ color: "#888" }}
-              >
-                Success Rate
-              </th>
-              <th
-                className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
-                style={{ color: "#888" }}
-              >
-                Last Triggered
-              </th>
-              <th className="px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wider" style={{ color: "#888" }}>
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {webhooks.map((webhook) => (
-              <WebhookRow
-                key={webhook.id}
-                webhook={webhook}
-                isExpanded={expandedRow === webhook.id}
-                onToggle={() => toggleRow(webhook.id)}
-                truncateUrl={truncateUrl}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+                return (
+                  <WebhookRowView
+                    key={id}
+                    id={id}
+                    url={url}
+                    events={events}
+                    isActive={isActive}
+                    lastTriggered={lastTriggered}
+                    lastCode={lastCode}
+                    isExpanded={isExpanded}
+                    onToggle={() => toggleRow(id)}
+                    truncateUrl={truncateUrl}
+                    formatTimeAgo={formatTimeAgo}
+                    onToggleActive={() => toggleMutation.mutate({ id, is_active: !isActive })}
+                    onDelete={() => deleteMutation.mutate(id)}
+                  />
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
-function WebhookRow({
-  webhook,
+function WebhookRowView({
+  id,
+  url,
+  events,
+  isActive,
+  lastTriggered,
+  lastCode,
   isExpanded,
   onToggle,
   truncateUrl,
+  formatTimeAgo,
+  onToggleActive,
+  onDelete,
 }: {
-  webhook: WebhookEntry;
+  id: string;
+  url: string;
+  events: string[];
+  isActive: boolean;
+  lastTriggered: string | null;
+  lastCode: number | null;
   isExpanded: boolean;
   onToggle: () => void;
   truncateUrl: (url: string, max?: number) => string;
+  formatTimeAgo: (dateStr: string | null) => string;
+  onToggleActive: () => void;
+  onDelete: () => void;
 }) {
   return (
     <>
-      {/* Main Row */}
       <tr
         className="transition-colors hover:bg-gray-50/50"
         style={{ borderBottom: isExpanded ? "none" : "1px solid #e0dbd5" }}
       >
-        {/* Expand Toggle */}
         <td className="px-3 py-3">
           <button
             onClick={onToggle}
@@ -254,44 +238,34 @@ function WebhookRow({
           </button>
         </td>
 
-        {/* URL */}
         <td className="px-3 py-3">
           <div className="flex items-center gap-2">
             <Webhook size={14} strokeWidth={1.5} style={{ color: "#888" }} />
             <code
               className="text-xs"
               style={{ color: "#000", fontFamily: "monospace" }}
-              title={webhook.url}
+              title={url}
             >
-              {truncateUrl(webhook.url)}
+              {truncateUrl(url)}
             </code>
           </div>
         </td>
 
-        {/* Events */}
         <td className="px-3 py-3">
           <div className="flex flex-wrap gap-1">
-            {webhook.events.length === EVENT_TYPES.length ? (
+            {events.length > 3 ? (
               <span
                 className="inline-flex h-5 items-center border px-1.5 text-xs"
-                style={{
-                  borderColor: "#e0dbd5",
-                  borderRadius: "4px",
-                  color: "#888",
-                }}
+                style={{ borderColor: "#e0dbd5", borderRadius: "4px", color: "#888" }}
               >
-                All events
+                {events.length} events
               </span>
             ) : (
-              webhook.events.map((event) => (
+              events.map((event) => (
                 <span
                   key={event}
                   className="inline-flex h-5 items-center border px-1.5 text-xs"
-                  style={{
-                    borderColor: "#e0dbd5",
-                    borderRadius: "4px",
-                    color: "#888",
-                  }}
+                  style={{ borderColor: "#e0dbd5", borderRadius: "4px", color: "#888" }}
                 >
                   {event}
                 </span>
@@ -300,55 +274,29 @@ function WebhookRow({
           </div>
         </td>
 
-        {/* Status */}
         <td className="px-3 py-3">
-          <div className="flex items-center gap-1.5">
+          <button onClick={onToggleActive} className="flex items-center gap-1.5">
             <span
               className="inline-block h-2 w-2 rounded-full"
-              style={{
-                backgroundColor: webhook.status === "active" ? "#22c55e" : "#888",
-              }}
+              style={{ backgroundColor: isActive ? "#22c55e" : "#888" }}
             />
-            <span className="text-xs capitalize" style={{ color: webhook.status === "active" ? "#000" : "#888" }}>
-              {webhook.status === "active" ? "Active" : "Paused"}
+            <span className="text-xs capitalize" style={{ color: isActive ? "#000" : "#888" }}>
+              {isActive ? "Active" : "Paused"}
             </span>
-          </div>
+          </button>
         </td>
 
-        {/* Success Rate */}
-        <td className="px-3 py-3">
-          <span
-            className="text-xs font-medium"
-            style={{
-              color:
-                webhook.successRate >= 95
-                  ? "#22c55e"
-                  : webhook.successRate >= 90
-                    ? "#888"
-                    : "#ef4444",
-            }}
-          >
-            {webhook.successRate}%
-          </span>
-        </td>
-
-        {/* Last Triggered */}
         <td className="px-3 py-3">
           <span className="text-xs" style={{ color: "#888" }}>
-            {webhook.lastTriggered}
+            {formatTimeAgo(lastTriggered)}
           </span>
         </td>
 
-        {/* Actions */}
         <td className="px-3 py-3 text-right">
           <div className="flex items-center justify-end gap-1">
             <button
               className="inline-flex h-7 items-center gap-1 border px-2 text-xs font-medium transition-colors hover:bg-gray-50"
-              style={{
-                borderColor: "#e0dbd5",
-                borderRadius: "4px",
-                color: "#888",
-              }}
+              style={{ borderColor: "#e0dbd5", borderRadius: "4px", color: "#888" }}
               title="Send test event"
             >
               <Play size={10} strokeWidth={1.5} />
@@ -356,12 +304,9 @@ function WebhookRow({
             </button>
             <button
               className="inline-flex h-7 w-7 items-center justify-center border transition-colors hover:bg-gray-50"
-              style={{
-                borderColor: "#e0dbd5",
-                borderRadius: "4px",
-                color: "#888",
-              }}
-              title="More options"
+              style={{ borderColor: "#e0dbd5", borderRadius: "4px", color: "#888" }}
+              title="Delete"
+              onClick={onDelete}
             >
               <MoreHorizontal size={14} strokeWidth={1.5} />
             </button>
@@ -369,142 +314,43 @@ function WebhookRow({
         </td>
       </tr>
 
-      {/* Expanded Delivery Log */}
-      {isExpanded && (
+      {isExpanded ? (
         <tr style={{ borderBottom: "1px solid #e0dbd5" }}>
-          <td colSpan={7} className="px-0 py-0">
+          <td colSpan={6} className="px-0 py-0">
             <div
-              className="mx-4 mb-4 mt-0 border"
-              style={{
-                borderColor: "#e0dbd5",
-                borderRadius: "6px",
-                backgroundColor: "#f8f8f8",
-              }}
+              className="mx-4 mb-4 mt-0 border p-4"
+              style={{ borderColor: "#e0dbd5", borderRadius: "6px", backgroundColor: "#f8f8f8" }}
             >
-              <div
-                className="flex items-center justify-between border-b px-4 py-2"
-                style={{ borderColor: "#e0dbd5" }}
-              >
-                <span
-                  className="text-xs font-medium"
-                  style={{ color: "#888" }}
-                >
-                  Recent Deliveries
-                </span>
-                <button
-                  className="text-xs transition-colors hover:underline"
-                  style={{ color: "#888" }}
-                >
-                  View all
-                  <ExternalLink
-                    size={10}
-                    strokeWidth={1.5}
-                    className="ml-1 inline"
-                  />
-                </button>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium" style={{ color: "#888" }}>URL:</span>
+                  <code className="text-black">{url}</code>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium" style={{ color: "#888" }}>Events:</span>
+                  <span className="text-black">{events.join(", ")}</span>
+                </div>
+                {lastCode ? (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium" style={{ color: "#888" }}>Last Response:</span>
+                    <code
+                      className="inline-flex h-5 items-center border px-1.5"
+                      style={{
+                        borderColor: "#e0dbd5",
+                        borderRadius: "3px",
+                        backgroundColor: "#fff",
+                        color: lastCode >= 200 && lastCode < 300 ? "#22c55e" : "#ef4444",
+                      }}
+                    >
+                      {lastCode}
+                    </code>
+                  </div>
+                ) : null}
               </div>
-              <table className="w-full text-xs">
-                <thead>
-                  <tr style={{ borderBottom: "1px solid #e0dbd5" }}>
-                    <th
-                      className="px-4 py-2 text-left font-medium"
-                      style={{ color: "#888" }}
-                    >
-                      Timestamp
-                    </th>
-                    <th
-                      className="px-4 py-2 text-left font-medium"
-                      style={{ color: "#888" }}
-                    >
-                      Status
-                    </th>
-                    <th
-                      className="px-4 py-2 text-left font-medium"
-                      style={{ color: "#888" }}
-                    >
-                      Response Code
-                    </th>
-                    <th
-                      className="px-4 py-2 text-left font-medium"
-                      style={{ color: "#888" }}
-                    >
-                      Duration
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {webhook.deliveries.map((delivery) => (
-                    <tr
-                      key={delivery.id}
-                      style={{ borderBottom: "1px solid #e0dbd5" }}
-                      className="last:border-0"
-                    >
-                      <td
-                        className="px-4 py-2 font-mono"
-                        style={{ color: "#000" }}
-                      >
-                        {delivery.timestamp}
-                      </td>
-                      <td className="px-4 py-2">
-                        <div className="flex items-center gap-1.5">
-                          {delivery.status === "success" ? (
-                            <Check
-                              size={12}
-                              strokeWidth={1.5}
-                              style={{ color: "#22c55e" }}
-                            />
-                          ) : (
-                            <X
-                              size={12}
-                              strokeWidth={1.5}
-                              style={{ color: "#ef4444" }}
-                            />
-                          )}
-                          <span
-                            style={{
-                              color:
-                                delivery.status === "success"
-                                  ? "#22c55e"
-                                  : "#ef4444",
-                            }}
-                          >
-                            {delivery.status === "success"
-                              ? "Success"
-                              : "Failed"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2">
-                        <code
-                          className="inline-flex h-5 items-center border px-1.5"
-                          style={{
-                            borderColor: "#e0dbd5",
-                            borderRadius: "3px",
-                            backgroundColor: "#fff",
-                            color:
-                              delivery.responseCode >= 200 &&
-                              delivery.responseCode < 300
-                                ? "#22c55e"
-                                : "#ef4444",
-                          }}
-                        >
-                          {delivery.responseCode}
-                        </code>
-                      </td>
-                      <td
-                        className="px-4 py-2"
-                        style={{ color: "#888" }}
-                      >
-                        {delivery.duration}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </td>
         </tr>
-      )}
+      ) : null}
     </>
   );
 }

@@ -1,133 +1,100 @@
 "use client";
 
 import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
+import { useAppUser } from "@/lib/hooks/use-app-user";
+import { toast } from "sonner";
 import {
   Zap,
-  Mail,
-  MessageSquare,
-  Phone,
-  Clock,
-  CheckCircle2,
   Plus,
   ToggleLeft,
   ToggleRight,
   ChevronRight,
-  Bot,
-  Bell,
-  UserPlus,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-interface Automation {
-  id: string;
-  name: string;
-  trigger: string;
-  triggerIcon: React.ElementType;
-  action: string;
-  actionIcon: React.ElementType;
-  actionType: string;
-  enabled: boolean;
-  runCount: number;
-  lastTriggered: string;
-}
-
-const automations: Automation[] = [
-  {
-    id: "1",
-    name: "Welcome New Leads",
-    trigger: "New Lead Created",
-    triggerIcon: UserPlus,
-    action: "Send welcome email with company brochure",
-    actionIcon: Mail,
-    actionType: "email",
-    enabled: true,
-    runCount: 87,
-    lastTriggered: "2 hours ago",
-  },
-  {
-    id: "2",
-    name: "Estimate Follow-up",
-    trigger: "Estimate Approved",
-    triggerIcon: CheckCircle2,
-    action: "Create project + notify team via SMS",
-    actionIcon: Phone,
-    actionType: "sms",
-    enabled: true,
-    runCount: 34,
-    lastTriggered: "Yesterday",
-  },
-  {
-    id: "3",
-    name: "Overdue Invoice Reminder",
-    trigger: "Invoice Overdue 7 Days",
-    triggerIcon: Clock,
-    action: "Send payment reminder SMS",
-    actionIcon: Phone,
-    actionType: "sms",
-    enabled: true,
-    runCount: 12,
-    lastTriggered: "3 days ago",
-  },
-  {
-    id: "4",
-    name: "Review Request",
-    trigger: "Project Marked Complete",
-    triggerIcon: CheckCircle2,
-    action: "Send review request email after 3 days",
-    actionIcon: Mail,
-    actionType: "email",
-    enabled: true,
-    runCount: 19,
-    lastTriggered: "1 week ago",
-  },
-  {
-    id: "5",
-    name: "Client Message Alert",
-    trigger: "New Message from Client",
-    triggerIcon: MessageSquare,
-    action: "Notify assigned team member",
-    actionIcon: Bell,
-    actionType: "notification",
-    enabled: false,
-    runCount: 156,
-    lastTriggered: "5 minutes ago",
-  },
-  {
-    id: "6",
-    name: "Hot Lead Assignment",
-    trigger: "Lead Score > 80",
-    triggerIcon: Zap,
-    action: "Assign to sales manager + AI generate summary",
-    actionIcon: Bot,
-    actionType: "ai",
-    enabled: true,
-    runCount: 8,
-    lastTriggered: "2 days ago",
-  },
-];
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AutomationsPage() {
-  const [rules, setRules] = useState(automations);
+  const { appUser } = useAppUser();
+  const tenantId = appUser?.tenantId ?? undefined;
+  const supabase = createClient();
+  const qc = useQueryClient();
 
-  const toggleRule = (id: string) => {
-    setRules((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r))
-    );
+  const { data: rules, isLoading } = useQuery({
+    queryKey: ["automation-rules", tenantId],
+    queryFn: async () => {
+      let q = supabase
+        .from("automation_rules")
+        .select("id, name, trigger_event, action_type, is_active, run_count, last_run_at, description, created_at");
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q.order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tenantId,
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase
+        .from("automation_rules")
+        .update({ is_active } as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["automation-rules", tenantId] });
+      toast.success("Automation updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("automation_rules")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["automation-rules", tenantId] });
+      toast.success("Automation deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const ruleList = rules ?? [];
+  const activeCount = ruleList.filter((r) => (r.is_active as boolean | null) === true).length;
+  const totalRuns = ruleList.reduce((s, r) => s + ((r.run_count as number | null) ?? 0), 0);
+
+  const formatTimeAgo = (dateStr: string | null) => {
+    if (!dateStr) return "Never";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   };
-
-  const activeCount = rules.filter((r) => r.enabled).length;
-  const totalRuns = rules.reduce((s, r) => s + r.runCount, 0);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-black">Automations</h1>
-          <p className="mt-1 text-sm text-[#888]">
-            {activeCount} active rules &middot; {totalRuns} total runs
-          </p>
+          {isLoading ? (
+            <Skeleton className="mt-1 h-5 w-48" />
+          ) : (
+            <p className="mt-1 text-sm text-[#888]">
+              {activeCount} active rules &middot; {totalRuns} total runs
+            </p>
+          )}
         </div>
         <Button className="bg-black text-white hover:bg-black/90">
           <Plus className="mr-2 h-4 w-4" />
@@ -135,56 +102,92 @@ export default function AutomationsPage() {
         </Button>
       </div>
 
-      <div className="space-y-3">
-        {rules.map((rule) => (
-          <Card
-            key={rule.id}
-            className={`border-[#e0dbd5] ${!rule.enabled ? "opacity-60" : ""}`}
-          >
-            <CardContent className="flex items-center gap-4 p-4">
-              {/* Toggle */}
-              <button
-                onClick={() => toggleRule(rule.id)}
-                className="shrink-0 text-black"
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : ruleList.length === 0 ? (
+        <Card className="border-[#e0dbd5]">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Zap strokeWidth={1.5} className="size-10 text-[#e0dbd5]" />
+            <p className="mt-3 text-sm font-medium text-black">No automations yet</p>
+            <p className="mt-1 text-sm text-[#888]">Create your first automation to get started.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {ruleList.map((rule) => {
+            const isActive = (rule.is_active as boolean | null) === true;
+            const runCount = (rule.run_count as number | null) ?? 0;
+            const lastRun = rule.last_run_at as string | null;
+            const triggerEvent = (rule.trigger_event as string) ?? "";
+            const actionType = (rule.action_type as string) ?? "";
+            const description = (rule.description as string | null) ?? actionType;
+
+            return (
+              <Card
+                key={rule.id as string}
+                className={`border-[#e0dbd5] ${!isActive ? "opacity-60" : ""}`}
               >
-                {rule.enabled ? (
-                  <ToggleRight className="h-6 w-6" strokeWidth={1.5} />
-                ) : (
-                  <ToggleLeft className="h-6 w-6 text-[#888]" strokeWidth={1.5} />
-                )}
-              </button>
+                <CardContent className="flex items-center gap-4 p-4">
+                  {/* Toggle */}
+                  <button
+                    onClick={() =>
+                      toggleMutation.mutate({
+                        id: rule.id as string,
+                        is_active: !isActive,
+                      })
+                    }
+                    className="shrink-0 text-black"
+                  >
+                    {isActive ? (
+                      <ToggleRight className="h-6 w-6" strokeWidth={1.5} />
+                    ) : (
+                      <ToggleLeft className="h-6 w-6 text-[#888]" strokeWidth={1.5} />
+                    )}
+                  </button>
 
-              {/* Trigger */}
-              <div className="flex items-center gap-2 rounded-lg border border-[#e0dbd5] bg-[#f8f8f8] px-3 py-2">
-                <rule.triggerIcon className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
-                <span className="text-sm font-medium text-black">
-                  {rule.trigger}
-                </span>
-              </div>
+                  {/* Trigger */}
+                  <div className="flex items-center gap-2 rounded-lg border border-[#e0dbd5] bg-[#f8f8f8] px-3 py-2">
+                    <Zap className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
+                    <span className="text-sm font-medium text-black capitalize">
+                      {triggerEvent.replace(/_/g, " ")}
+                    </span>
+                  </div>
 
-              {/* Arrow */}
-              <ChevronRight className="h-4 w-4 shrink-0 text-[#888]" strokeWidth={1.5} />
+                  {/* Arrow */}
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[#888]" strokeWidth={1.5} />
 
-              {/* Action */}
-              <div className="flex flex-1 items-center gap-2 rounded-lg border border-[#e0dbd5] bg-[#f8f8f8] px-3 py-2">
-                <rule.actionIcon className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
-                <span className="text-sm text-black">{rule.action}</span>
-              </div>
+                  {/* Action */}
+                  <div className="flex flex-1 items-center gap-2 rounded-lg border border-[#e0dbd5] bg-[#f8f8f8] px-3 py-2">
+                    <span className="text-sm text-black">{description}</span>
+                  </div>
 
-              {/* Meta */}
-              <div className="hidden shrink-0 items-center gap-3 text-xs text-[#888] sm:flex">
-                <Badge
-                  variant="outline"
-                  className="border-[#e0dbd5] text-[#888]"
-                >
-                  {rule.runCount} runs
-                </Badge>
-                <span>{rule.lastTriggered}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  {/* Meta */}
+                  <div className="hidden shrink-0 items-center gap-3 text-xs text-[#888] sm:flex">
+                    <Badge variant="outline" className="border-[#e0dbd5] text-[#888]">
+                      {runCount} runs
+                    </Badge>
+                    <span>{formatTimeAgo(lastRun)}</span>
+                  </div>
+
+                  {/* Delete */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 shrink-0 p-0 text-[#888] hover:text-red-600"
+                    onClick={() => deleteMutation.mutate(rule.id as string)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
