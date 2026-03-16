@@ -12,7 +12,7 @@ export function useThreads(userId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("message_threads")
-        .select("*, messages(id, content, created_at, sender_id, read)")
+        .select("*, messages(id, body, created_at, sender_id, read_at)")
         .or(`participant_one.eq.${userId},participant_two.eq.${userId}`)
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -48,9 +48,12 @@ export function useSendMessage() {
       sender_id: string;
       content: string;
     }) => {
+      // Map content to body for the DB column
+      const { content, ...rest } = message;
+      const dbMessage = { ...rest, body: content };
       const { data, error } = await supabase
         .from("messages")
-        .insert(message as never)
+        .insert(dbMessage as never)
         .select()
         .single();
       if (error) throw error;
