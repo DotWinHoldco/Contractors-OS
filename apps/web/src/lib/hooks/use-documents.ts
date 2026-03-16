@@ -29,14 +29,9 @@ export function useUploadDocument() {
       record,
     }: {
       file: File;
-      record: {
-        project_id?: string;
-        tenant_id: string;
-        name: string;
-        type?: string;
-      };
+      record: Record<string, unknown>;
     }) => {
-      const storagePath = `${record.tenant_id}/${Date.now()}-${file.name}`;
+      const storagePath = `${record.tenant_id || "default"}/${Date.now()}-${file.name}`;
 
       const { error: uploadError } = await supabase.storage
         .from("documents")
