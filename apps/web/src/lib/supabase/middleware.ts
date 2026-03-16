@@ -4,12 +4,17 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    "https://jedtxxytfajeoqeqaegz.supabase.co";
-  const supabaseAnonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplZHR4eHl0ZmFqZW9xZXFhZWd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTI0MjEsImV4cCI6MjA4OTE2ODQyMX0.qNyR4zM0u362Q8vX8YTYCRunv-__pHdhBtiUCbKj95g";
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // If Supabase is not configured, allow all routes
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return {
+      supabase: null,
+      user: null,
+      response: supabaseResponse,
+    };
+  }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
