@@ -6,78 +6,30 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, ArrowLeft, Star } from "lucide-react";
+import {
+  useSubcontractors,
+  useCreateSubcontractor,
+  useDeleteSubcontractor,
+} from "@/lib/hooks/use-employees";
 
-interface Subcontractor {
-  id: string;
-  companyName: string;
-  contactName: string;
-  trade: string;
-  insuranceStatus: "valid" | "expired" | "pending";
-  w9Status: "received" | "pending" | "missing";
-  rating: number;
-  phone: string;
-}
-
-const mockSubs: Subcontractor[] = [
-  {
-    id: "1",
-    companyName: "Northshore Plumbing Co.",
-    contactName: "Bill Harrison",
-    trade: "Plumbing",
-    insuranceStatus: "valid",
-    w9Status: "received",
-    rating: 5,
-    phone: "(231) 555-0401",
-  },
-  {
-    id: "2",
-    companyName: "Apex Electrical Services",
-    contactName: "Rosa Diaz",
-    trade: "Electrical",
-    insuranceStatus: "valid",
-    w9Status: "received",
-    rating: 4,
-    phone: "(231) 555-0402",
-  },
-  {
-    id: "3",
-    companyName: "Lakeview HVAC",
-    contactName: "Gary Patterson",
-    trade: "HVAC",
-    insuranceStatus: "expired",
-    w9Status: "pending",
-    rating: 3,
-    phone: "(231) 555-0403",
-  },
-  {
-    id: "4",
-    companyName: "Summit Concrete & Masonry",
-    contactName: "Ana Reyes",
-    trade: "Concrete",
-    insuranceStatus: "pending",
-    w9Status: "received",
-    rating: 4,
-    phone: "(231) 555-0404",
-  },
-];
-
-const insuranceBadge = (status: Subcontractor["insuranceStatus"]) => {
-  const styles = {
+const insuranceBadgeStyle = (status: string) => {
+  const styles: Record<string, string> = {
     valid: "bg-green-50 text-green-700",
     expired: "bg-red-50 text-red-700",
     pending: "bg-amber-50 text-amber-700",
   };
-  return styles[status];
+  return styles[status] ?? "bg-gray-100 text-gray-700";
 };
 
-const w9Badge = (status: Subcontractor["w9Status"]) => {
-  const styles = {
+const w9BadgeStyle = (status: string) => {
+  const styles: Record<string, string> = {
     received: "bg-green-50 text-green-700",
     pending: "bg-amber-50 text-amber-700",
     missing: "bg-red-50 text-red-700",
   };
-  return styles[status];
+  return styles[status] ?? "bg-gray-100 text-gray-700";
 };
 
 function StarRating({ rating }: { rating: number }) {
@@ -99,11 +51,41 @@ function StarRating({ rating }: { rating: number }) {
 export default function SubcontractorsPage() {
   const [search, setSearch] = useState("");
 
-  const filtered = mockSubs.filter(
-    (s) =>
-      s.companyName.toLowerCase().includes(search.toLowerCase()) ||
-      s.trade.toLowerCase().includes(search.toLowerCase())
-  );
+  const { data: subsData, isLoading } = useSubcontractors();
+  const createSub = useCreateSubcontractor();
+  const deleteSub = useDeleteSubcontractor();
+
+  const subs = (subsData ?? []) as Record<string, unknown>[];
+
+  const filtered = subs.filter((s) => {
+    const company = String(s.company_name ?? "");
+    const trade = String(s.trade ?? "");
+    return (
+      company.toLowerCase().includes(search.toLowerCase()) ||
+      trade.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+
+  const handleAdd = () => {
+    createSub.mutate({ company_name: "New Subcontractor", trade: "" });
+  };
+
+  if (isLoading) {
+    return (
+      <div>
+        <Skeleton className="mb-1 h-4 w-16" />
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="mt-1 h-4 w-28" />
+          </div>
+          <Skeleton className="h-8 w-40" />
+        </div>
+        <Skeleton className="mb-4 h-10 w-full max-w-sm" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -121,12 +103,14 @@ export default function SubcontractorsPage() {
         <div>
           <h1 className="text-2xl font-bold text-black">Subcontractors</h1>
           <p className="text-sm text-[#888]">
-            {mockSubs.length} subcontractors
+            {subs.length} subcontractors
           </p>
         </div>
         <Button
           size="sm"
           className="bg-black text-xs text-white hover:bg-black/90"
+          onClick={handleAdd}
+          disabled={createSub.isPending}
         >
           <Plus className="mr-1 h-3 w-3" />
           Add Subcontractor
@@ -165,50 +149,87 @@ export default function SubcontractorsPage() {
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
                   Rating
                 </th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e0dbd5]">
-              {filtered.map((sub) => (
-                <tr key={sub.id} className="hover:bg-[#f8f8f8]">
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-black">
-                      {sub.companyName}
-                    </p>
-                    <p className="text-xs text-[#888]">
-                      {sub.contactName} &middot; {sub.phone}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {sub.trade}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant="secondary"
-                      className={`text-[10px] ${insuranceBadge(sub.insuranceStatus)}`}
-                    >
-                      {sub.insuranceStatus}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant="secondary"
-                      className={`text-[10px] ${w9Badge(sub.w9Status)}`}
-                    >
-                      {sub.w9Status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StarRating rating={sub.rating} />
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((sub) => {
+                const id = String(sub.id);
+                const company = String(sub.company_name ?? "");
+                const contact = sub.contact_name
+                  ? String(sub.contact_name)
+                  : null;
+                const phone = sub.phone ? String(sub.phone) : null;
+                const trade = sub.trade ? String(sub.trade) : "";
+                const insurance = String(sub.insurance_status ?? "");
+                const w9 = String(sub.w9_status ?? "");
+                const rating = Number(sub.rating) || 0;
+
+                return (
+                  <tr key={id} className="hover:bg-[#f8f8f8]">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-medium text-black">
+                        {company}
+                      </p>
+                      {contact ? (
+                        <p className="text-xs text-[#888]">
+                          {contact}
+                          {phone ? <> &middot; {phone}</> : null}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">{trade}</td>
+                    <td className="px-4 py-3">
+                      {insurance ? (
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] ${insuranceBadgeStyle(insurance)}`}
+                        >
+                          {insurance}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-[#888]">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {w9 ? (
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] ${w9BadgeStyle(w9)}`}
+                        >
+                          {w9}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-[#888]">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {rating > 0 ? (
+                        <StarRating rating={rating} />
+                      ) : (
+                        <span className="text-xs text-[#888]">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => deleteSub.mutate(id)}
+                        className="text-xs text-red-500 hover:text-red-700"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-8 text-center text-sm text-[#888]"
                   >
-                    No subcontractors found
+                    No subcontractors found.
                   </td>
                 </tr>
               )}

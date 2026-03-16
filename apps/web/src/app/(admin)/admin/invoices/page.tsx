@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
   Search,
@@ -14,89 +15,11 @@ import {
   DollarSign,
   Filter,
 } from "lucide-react";
+import { useInvoices } from "@/lib/hooks/use-invoices";
 
-interface Invoice {
-  id: string;
-  number: string;
-  client: string;
-  project: string;
-  amount: string;
-  amountRaw: number;
-  status: "draft" | "sent" | "viewed" | "paid" | "overdue" | "partial";
-  dueDate: string;
-  paidAmount: string;
-}
+type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "partial";
 
-const mockInvoices: Invoice[] = [
-  {
-    id: "1",
-    number: "INV-001",
-    client: "Sarah Mitchell",
-    project: "Kitchen Remodel",
-    amount: "$45,200.00",
-    amountRaw: 45200,
-    status: "paid",
-    dueDate: "Mar 1, 2026",
-    paidAmount: "$45,200.00",
-  },
-  {
-    id: "2",
-    number: "INV-002",
-    client: "David Kim",
-    project: "Composite Deck Build",
-    amount: "$28,750.00",
-    amountRaw: 28750,
-    status: "sent",
-    dueDate: "Mar 25, 2026",
-    paidAmount: "$0.00",
-  },
-  {
-    id: "3",
-    number: "INV-003",
-    client: "Jennifer Torres",
-    project: "Basement Finish",
-    amount: "$64,800.00",
-    amountRaw: 64800,
-    status: "draft",
-    dueDate: "Apr 1, 2026",
-    paidAmount: "$0.00",
-  },
-  {
-    id: "4",
-    number: "INV-004",
-    client: "Mike Reynolds",
-    project: "Master Bath Renovation",
-    amount: "$31,500.00",
-    amountRaw: 31500,
-    status: "overdue",
-    dueDate: "Feb 28, 2026",
-    paidAmount: "$0.00",
-  },
-  {
-    id: "5",
-    number: "INV-005",
-    client: "Amanda Park",
-    project: "Home Addition",
-    amount: "$95,000.00",
-    amountRaw: 95000,
-    status: "partial",
-    dueDate: "Mar 20, 2026",
-    paidAmount: "$47,500.00",
-  },
-  {
-    id: "6",
-    number: "INV-006",
-    client: "Greg Stevens",
-    project: "Whole Home Remodel",
-    amount: "$128,400.00",
-    amountRaw: 128400,
-    status: "viewed",
-    dueDate: "Apr 15, 2026",
-    paidAmount: "$0.00",
-  },
-];
-
-const statusColors: Record<Invoice["status"], string> = {
+const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
   sent: "bg-blue-100 text-blue-700",
   viewed: "bg-amber-100 text-amber-700",
@@ -105,7 +28,7 @@ const statusColors: Record<Invoice["status"], string> = {
   partial: "bg-purple-100 text-purple-700",
 };
 
-const statusOptions: Invoice["status"][] = [
+const statusOptions: InvoiceStatus[] = [
   "draft",
   "sent",
   "viewed",
@@ -116,34 +39,83 @@ const statusOptions: Invoice["status"][] = [
 
 export default function InvoicesPage() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    Invoice["status"] | "all"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">(
+    "all"
+  );
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [showDateFilter, setShowDateFilter] = useState(false);
 
-  const filtered = mockInvoices.filter((inv) => {
+  const { data: invoices, isLoading } = useInvoices();
+
+  const rows = (invoices ?? []) as Record<string, unknown>[];
+
+  const getClientName = (row: Record<string, unknown>): string => {
+    const clients = row.clients as Record<string, unknown> | null;
+    if (clients) {
+      return `${String(clients.first_name ?? "")} ${String(clients.last_name ?? "")}`.trim();
+    }
+    return "";
+  };
+
+  const getProjectName = (row: Record<string, unknown>): string => {
+    const projects = row.projects as Record<string, unknown> | null;
+    if (projects) return String(projects.name ?? "");
+    return "";
+  };
+
+  const filtered = rows.filter((inv) => {
+    const number = String(inv.invoice_number ?? "");
+    const client = getClientName(inv);
+    const project = getProjectName(inv);
+    const status = String(inv.status ?? "");
     const matchesSearch =
-      inv.number.toLowerCase().includes(search.toLowerCase()) ||
-      inv.client.toLowerCase().includes(search.toLowerCase()) ||
-      inv.project.toLowerCase().includes(search.toLowerCase());
+      number.toLowerCase().includes(search.toLowerCase()) ||
+      client.toLowerCase().includes(search.toLowerCase()) ||
+      project.toLowerCase().includes(search.toLowerCase());
     const matchesStatus =
-      statusFilter === "all" || inv.status === statusFilter;
+      statusFilter === "all" || status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const totalOutstanding = mockInvoices
-    .filter((i) => i.status !== "paid" && i.status !== "draft")
-    .reduce((sum, i) => sum + i.amountRaw, 0);
+  const totalOutstanding = rows
+    .filter((i) => {
+      const s = String(i.status ?? "");
+      return s !== "paid" && s !== "draft";
+    })
+    .reduce((sum, i) => sum + (Number(i.total_amount) || 0), 0);
 
-  const totalPaid = mockInvoices
-    .filter((i) => i.status === "paid")
-    .reduce((sum, i) => sum + i.amountRaw, 0);
+  const totalPaid = rows
+    .filter((i) => String(i.status ?? "") === "paid")
+    .reduce((sum, i) => sum + (Number(i.total_amount) || 0), 0);
 
-  const totalOverdue = mockInvoices
-    .filter((i) => i.status === "overdue")
-    .reduce((sum, i) => sum + i.amountRaw, 0);
+  const totalOverdue = rows
+    .filter((i) => String(i.status ?? "") === "overdue")
+    .reduce((sum, i) => sum + (Number(i.total_amount) || 0), 0);
+
+  const formatCurrency = (val: number) =>
+    val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  if (isLoading) {
+    return (
+      <div>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="mt-1 h-4 w-28" />
+          </div>
+          <Skeleton className="h-8 w-28" />
+        </div>
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-10 w-full max-w-sm mb-4" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -151,7 +123,7 @@ export default function InvoicesPage() {
         <div>
           <h1 className="text-2xl font-bold text-black">Invoices</h1>
           <p className="text-sm text-[#888]">
-            {mockInvoices.length} total invoices
+            {rows.length} total invoices
           </p>
         </div>
         <Link href="/admin/invoices/new">
@@ -178,7 +150,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-xs font-medium text-[#888]">Total Paid</p>
               <p className="text-lg font-bold text-black">
-                ${totalPaid.toLocaleString()}
+                ${formatCurrency(totalPaid)}
               </p>
             </div>
           </div>
@@ -194,7 +166,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-xs font-medium text-[#888]">Outstanding</p>
               <p className="text-lg font-bold text-black">
-                ${totalOutstanding.toLocaleString()}
+                ${formatCurrency(totalOutstanding)}
               </p>
             </div>
           </div>
@@ -210,7 +182,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-xs font-medium text-[#888]">Overdue</p>
               <p className="text-lg font-bold text-black">
-                ${totalOverdue.toLocaleString()}
+                ${formatCurrency(totalOverdue)}
               </p>
             </div>
           </div>
@@ -331,44 +303,57 @@ export default function InvoicesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e0dbd5]">
-              {filtered.map((invoice) => (
-                <tr key={invoice.id} className="hover:bg-[#f8f8f8]">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/invoices/${invoice.id}`}
-                      className="flex items-center gap-2 text-sm font-medium text-black hover:underline"
-                    >
-                      <FileText
-                        className="h-4 w-4 text-[#888]"
-                        strokeWidth={1.5}
-                      />
-                      {invoice.number}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {invoice.client}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {invoice.project}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-black">
-                    {invoice.amount}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      className={`text-[10px] capitalize ${statusColors[invoice.status]}`}
-                    >
-                      {invoice.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-[#888]">
-                    {invoice.dueDate}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {invoice.paidAmount}
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((invoice) => {
+                const id = String(invoice.id);
+                const status = String(invoice.status ?? "draft");
+                const totalAmount = Number(invoice.total_amount) || 0;
+                const paidAmount = Number(invoice.paid_amount) || 0;
+                const dueDate = invoice.due_date
+                  ? new Date(String(invoice.due_date)).toLocaleDateString(
+                      "en-US",
+                      { month: "short", day: "numeric", year: "numeric" }
+                    )
+                  : "";
+
+                return (
+                  <tr key={id} className="hover:bg-[#f8f8f8]">
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/admin/invoices/${id}`}
+                        className="flex items-center gap-2 text-sm font-medium text-black hover:underline"
+                      >
+                        <FileText
+                          className="h-4 w-4 text-[#888]"
+                          strokeWidth={1.5}
+                        />
+                        {String(invoice.invoice_number ?? "")}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      {getClientName(invoice)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      {getProjectName(invoice)}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-black">
+                      ${formatCurrency(totalAmount)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        className={`text-[10px] capitalize ${statusColors[status] ?? "bg-gray-100 text-gray-700"}`}
+                      >
+                        {status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-[#888]">
+                      {dueDate}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      ${formatCurrency(paidAmount)}
+                    </td>
+                  </tr>
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td

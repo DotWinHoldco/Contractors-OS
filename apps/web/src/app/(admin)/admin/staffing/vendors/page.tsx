@@ -5,56 +5,13 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, ArrowLeft, Star } from "lucide-react";
-
-interface Vendor {
-  id: string;
-  companyName: string;
-  category: string;
-  contactName: string;
-  phone: string;
-  email: string;
-  rating: number;
-}
-
-const mockVendors: Vendor[] = [
-  {
-    id: "1",
-    companyName: "Traverse Lumber Supply",
-    category: "Lumber & Framing",
-    contactName: "Chris Wade",
-    phone: "(231) 555-0501",
-    email: "chris@traverselumber.com",
-    rating: 5,
-  },
-  {
-    id: "2",
-    companyName: "Northern Hardware Co.",
-    category: "Hardware & Fasteners",
-    contactName: "Pat Sullivan",
-    phone: "(231) 555-0502",
-    email: "pat@northernhw.com",
-    rating: 4,
-  },
-  {
-    id: "3",
-    companyName: "Great Lakes Tile & Stone",
-    category: "Tile & Flooring",
-    contactName: "Yuki Tanaka",
-    phone: "(231) 555-0503",
-    email: "yuki@gltile.com",
-    rating: 4,
-  },
-  {
-    id: "4",
-    companyName: "Bay Area Equipment Rental",
-    category: "Equipment Rental",
-    contactName: "Dan Kowalski",
-    phone: "(231) 555-0504",
-    email: "dan@bayequip.com",
-    rating: 3,
-  },
-];
+import {
+  useVendors,
+  useCreateVendor,
+  useDeleteVendor,
+} from "@/lib/hooks/use-employees";
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -75,11 +32,41 @@ function StarRating({ rating }: { rating: number }) {
 export default function VendorsPage() {
   const [search, setSearch] = useState("");
 
-  const filtered = mockVendors.filter(
-    (v) =>
-      v.companyName.toLowerCase().includes(search.toLowerCase()) ||
-      v.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const { data: vendorsData, isLoading } = useVendors();
+  const createVendor = useCreateVendor();
+  const deleteVendor = useDeleteVendor();
+
+  const vendors = (vendorsData ?? []) as Record<string, unknown>[];
+
+  const filtered = vendors.filter((v) => {
+    const company = String(v.company_name ?? "");
+    const category = String(v.category ?? "");
+    return (
+      company.toLowerCase().includes(search.toLowerCase()) ||
+      category.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+
+  const handleAdd = () => {
+    createVendor.mutate({ company_name: "New Vendor", category: "" });
+  };
+
+  if (isLoading) {
+    return (
+      <div>
+        <Skeleton className="mb-1 h-4 w-16" />
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="mt-1 h-4 w-24" />
+          </div>
+          <Skeleton className="h-8 w-28" />
+        </div>
+        <Skeleton className="mb-4 h-10 w-full max-w-sm" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -97,12 +84,14 @@ export default function VendorsPage() {
         <div>
           <h1 className="text-2xl font-bold text-black">Vendors</h1>
           <p className="text-sm text-[#888]">
-            {mockVendors.length} vendors
+            {vendors.length} vendors
           </p>
         </div>
         <Button
           size="sm"
           className="bg-black text-xs text-white hover:bg-black/90"
+          onClick={handleAdd}
+          disabled={createVendor.isPending}
         >
           <Plus className="mr-1 h-3 w-3" />
           Add Vendor
@@ -141,38 +130,67 @@ export default function VendorsPage() {
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
                   Rating
                 </th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e0dbd5]">
-              {filtered.map((vendor) => (
-                <tr key={vendor.id} className="hover:bg-[#f8f8f8]">
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-black">
-                      {vendor.companyName}
-                    </p>
-                    <p className="text-xs text-[#888]">{vendor.email}</p>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {vendor.category}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {vendor.contactName}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {vendor.phone}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StarRating rating={vendor.rating} />
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((vendor) => {
+                const id = String(vendor.id);
+                const company = String(vendor.company_name ?? "");
+                const email = vendor.email ? String(vendor.email) : null;
+                const category = vendor.category
+                  ? String(vendor.category)
+                  : "";
+                const contact = vendor.contact_name
+                  ? String(vendor.contact_name)
+                  : "";
+                const phone = vendor.phone ? String(vendor.phone) : "";
+                const rating = Number(vendor.rating) || 0;
+
+                return (
+                  <tr key={id} className="hover:bg-[#f8f8f8]">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-medium text-black">
+                        {company}
+                      </p>
+                      {email ? (
+                        <p className="text-xs text-[#888]">{email}</p>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      {category}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      {contact}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">{phone}</td>
+                    <td className="px-4 py-3">
+                      {rating > 0 ? (
+                        <StarRating rating={rating} />
+                      ) : (
+                        <span className="text-xs text-[#888]">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => deleteVendor.mutate(id)}
+                        className="text-xs text-red-500 hover:text-red-700"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-8 text-center text-sm text-[#888]"
                   >
-                    No vendors found
+                    No vendors found.
                   </td>
                 </tr>
               )}

@@ -3,21 +3,19 @@
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import {
+  useScheduleEvents,
+  useCreateScheduleEvent,
+  useDeleteScheduleEvent,
+} from "@/lib/hooks/use-schedule";
 
 type EventType = "consultation" | "site_visit" | "inspection" | "work_day";
-
-interface CalendarEvent {
-  id: string;
-  title: string;
-  date: string; // YYYY-MM-DD
-  type: EventType;
-  time?: string;
-}
 
 const EVENT_COLORS: Record<EventType, { bg: string; text: string; dot: string }> = {
   consultation: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500" },
@@ -33,104 +31,31 @@ const EVENT_LABELS: Record<EventType, string> = {
   work_day: "Work Day",
 };
 
-// Generate mock events for the current week
-function generateMockEvents(): CalendarEvent[] {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-
-  const fmt = (d: Date) => d.toISOString().split("T")[0];
-  const addDays = (d: Date, n: number) => {
-    const r = new Date(d);
-    r.setDate(d.getDate() + n);
-    return r;
-  };
-
-  return [
-    {
-      id: "1",
-      title: "Mitchell Kitchen Consult",
-      date: fmt(monday),
-      type: "consultation",
-      time: "9:00 AM",
-    },
-    {
-      id: "2",
-      title: "Kim Deck Build",
-      date: fmt(monday),
-      type: "work_day",
-      time: "7:00 AM",
-    },
-    {
-      id: "3",
-      title: "Torres Bathroom Site Visit",
-      date: fmt(addDays(monday, 1)),
-      type: "site_visit",
-      time: "10:00 AM",
-    },
-    {
-      id: "4",
-      title: "Reynolds Addition Inspection",
-      date: fmt(addDays(monday, 2)),
-      type: "inspection",
-      time: "1:00 PM",
-    },
-    {
-      id: "5",
-      title: "Kim Deck Build",
-      date: fmt(addDays(monday, 2)),
-      type: "work_day",
-      time: "7:00 AM",
-    },
-    {
-      id: "6",
-      title: "Kim Deck Build",
-      date: fmt(addDays(monday, 3)),
-      type: "work_day",
-      time: "7:00 AM",
-    },
-    {
-      id: "7",
-      title: "Chen Fence Consultation",
-      date: fmt(addDays(monday, 4)),
-      type: "consultation",
-      time: "2:00 PM",
-    },
-    {
-      id: "8",
-      title: "Kim Deck Build",
-      date: fmt(addDays(monday, 4)),
-      type: "work_day",
-      time: "7:00 AM",
-    },
-  ];
-}
-
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 function getMonthData(year: number, month: number) {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const startOffset = firstDay.getDay();
   const daysInMonth = lastDay.getDate();
-
   const prevMonthLast = new Date(year, month, 0).getDate();
 
   const cells: { day: number; month: number; year: number; isCurrentMonth: boolean }[] = [];
 
-  // Previous month fill
   for (let i = startOffset - 1; i >= 0; i--) {
     const d = prevMonthLast - i;
     cells.push({ day: d, month: month - 1, year, isCurrentMonth: false });
   }
 
-  // Current month
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push({ day: d, month, year, isCurrentMonth: true });
   }
 
-  // Next month fill
   const remaining = 7 - (cells.length % 7);
   if (remaining < 7) {
     for (let d = 1; d <= remaining; d++) {
@@ -160,15 +85,15 @@ function getWeekData(baseDate: Date) {
   return cells;
 }
 
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
 export default function SchedulingPage() {
   const [view, setView] = useState<"month" | "week">("month");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const events = useMemo(() => generateMockEvents(), []);
+
+  const { data: eventsData, isLoading } = useScheduleEvents();
+  const createEvent = useCreateScheduleEvent();
+  const deleteEvent = useDeleteScheduleEvent();
+
+  const events = (eventsData ?? []) as Record<string, unknown>[];
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -191,10 +116,23 @@ export default function SchedulingPage() {
   };
 
   const eventsByDate = useMemo(() => {
-    const map: Record<string, CalendarEvent[]> = {};
+    const map: Record<string, { id: string; title: string; type: EventType; time: string }[]> = {};
     for (const ev of events) {
-      if (!map[ev.date]) map[ev.date] = [];
-      map[ev.date].push(ev);
+      const startTime = String(ev.start_time ?? "");
+      const dateStr = startTime.split("T")[0];
+      if (!dateStr) continue;
+
+      const title = String(ev.title ?? "");
+      const type = (String(ev.event_type ?? "work_day")) as EventType;
+      const timeStr = startTime.includes("T")
+        ? new Date(startTime).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : "";
+
+      if (!map[dateStr]) map[dateStr] = [];
+      map[dateStr].push({ id: String(ev.id), title, type, time: timeStr });
     }
     return map;
   }, [events]);
@@ -204,6 +142,32 @@ export default function SchedulingPage() {
     const d = String(cell.day).padStart(2, "0");
     return `${cell.year}-${m}-${d}`;
   };
+
+  const handleAddEvent = () => {
+    const startTime = new Date().toISOString();
+    createEvent.mutate({
+      title: "New Event",
+      event_type: "work_day",
+      start_time: startTime,
+      end_time: startTime,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="mt-1 h-4 w-56" />
+          </div>
+          <Skeleton className="h-8 w-28" />
+        </div>
+        <Skeleton className="mb-4 h-10 w-full" />
+        <Skeleton className="h-[500px] w-full rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -217,6 +181,8 @@ export default function SchedulingPage() {
         <Button
           size="sm"
           className="bg-black text-xs text-white hover:bg-black/90"
+          onClick={handleAddEvent}
+          disabled={createEvent.isPending}
         >
           <Plus className="mr-1 h-3 w-3" />
           Add Event
@@ -327,21 +293,33 @@ export default function SchedulingPage() {
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  {dayEvents.slice(0, 3).map((ev) => (
-                    <div
-                      key={ev.id}
-                      className={`rounded px-1 py-0.5 ${EVENT_COLORS[ev.type].bg}`}
-                    >
-                      <p
-                        className={`truncate text-[10px] font-medium ${EVENT_COLORS[ev.type].text}`}
+                  {dayEvents.slice(0, 3).map((ev) => {
+                    const colors = EVENT_COLORS[ev.type] ?? EVENT_COLORS.work_day;
+                    return (
+                      <div
+                        key={ev.id}
+                        className={`group relative rounded px-1 py-0.5 ${colors.bg}`}
                       >
-                        {ev.time && (
-                          <span className="mr-0.5 opacity-75">{ev.time}</span>
-                        )}
-                        {ev.title}
-                      </p>
-                    </div>
-                  ))}
+                        <p
+                          className={`truncate text-[10px] font-medium ${colors.text}`}
+                        >
+                          {ev.time ? (
+                            <span className="mr-0.5 opacity-75">
+                              {ev.time}
+                            </span>
+                          ) : null}
+                          {ev.title}
+                        </p>
+                        <button
+                          onClick={() => deleteEvent.mutate(ev.id)}
+                          className="absolute right-0.5 top-0.5 hidden text-[10px] text-red-400 hover:text-red-600 group-hover:block"
+                          title="Delete event"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    );
+                  })}
                   {dayEvents.length > 3 && (
                     <p className="px-1 text-[10px] text-[#888]">
                       +{dayEvents.length - 3} more
@@ -353,6 +331,14 @@ export default function SchedulingPage() {
           })}
         </div>
       </Card>
+
+      {events.length === 0 && (
+        <div className="mt-8 text-center">
+          <p className="text-sm text-[#888]">
+            No events scheduled yet. Click &quot;Add Event&quot; to create one.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,74 +6,48 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, ArrowLeft } from "lucide-react";
-
-interface Employee {
-  id: string;
-  name: string;
-  role: string;
-  status: "active" | "inactive";
-  phone: string;
-  hireDate: string;
-  email: string;
-}
-
-const mockEmployees: Employee[] = [
-  {
-    id: "1",
-    name: "Jake Morrison",
-    role: "Lead Carpenter",
-    status: "active",
-    phone: "(231) 555-0301",
-    hireDate: "Jan 15, 2023",
-    email: "jake@example.com",
-  },
-  {
-    id: "2",
-    name: "Maria Gonzalez",
-    role: "Project Manager",
-    status: "active",
-    phone: "(231) 555-0302",
-    hireDate: "Mar 8, 2022",
-    email: "maria@example.com",
-  },
-  {
-    id: "3",
-    name: "Tom Bradley",
-    role: "Apprentice",
-    status: "active",
-    phone: "(231) 555-0303",
-    hireDate: "Sep 1, 2024",
-    email: "tom@example.com",
-  },
-  {
-    id: "4",
-    name: "Sarah Nguyen",
-    role: "Office Manager",
-    status: "active",
-    phone: "(231) 555-0304",
-    hireDate: "Jun 20, 2021",
-    email: "sarah@example.com",
-  },
-  {
-    id: "5",
-    name: "Derek Owens",
-    role: "Electrician",
-    status: "inactive",
-    phone: "(231) 555-0305",
-    hireDate: "Nov 3, 2023",
-    email: "derek@example.com",
-  },
-];
+import { useEmployees, useCreateEmployee, useDeleteEmployee } from "@/lib/hooks/use-employees";
 
 export default function EmployeesPage() {
   const [search, setSearch] = useState("");
 
-  const filtered = mockEmployees.filter(
-    (e) =>
-      e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.role.toLowerCase().includes(search.toLowerCase())
-  );
+  const { data: employeesData, isLoading } = useEmployees();
+  const createEmployee = useCreateEmployee();
+  const deleteEmployee = useDeleteEmployee();
+
+  const employees = (employeesData ?? []) as Record<string, unknown>[];
+
+  const filtered = employees.filter((e) => {
+    const name = String(e.first_name ?? "") + " " + String(e.last_name ?? "");
+    const role = String(e.role ?? "");
+    return (
+      name.toLowerCase().includes(search.toLowerCase()) ||
+      role.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+
+  const handleAdd = () => {
+    createEmployee.mutate({ first_name: "New", last_name: "Employee", status: "active" });
+  };
+
+  if (isLoading) {
+    return (
+      <div>
+        <Skeleton className="mb-1 h-4 w-16" />
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="mt-1 h-4 w-28" />
+          </div>
+          <Skeleton className="h-8 w-32" />
+        </div>
+        <Skeleton className="mb-4 h-10 w-full max-w-sm" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -91,12 +65,14 @@ export default function EmployeesPage() {
         <div>
           <h1 className="text-2xl font-bold text-black">Employees</h1>
           <p className="text-sm text-[#888]">
-            {mockEmployees.length} total employees
+            {employees.length} total employees
           </p>
         </div>
         <Button
           size="sm"
           className="bg-black text-xs text-white hover:bg-black/90"
+          onClick={handleAdd}
+          disabled={createEmployee.isPending}
         >
           <Plus className="mr-1 h-3 w-3" />
           Add Employee
@@ -135,47 +111,70 @@ export default function EmployeesPage() {
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
                   Hire Date
                 </th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e0dbd5]">
-              {filtered.map((emp) => (
-                <tr key={emp.id} className="hover:bg-[#f8f8f8]">
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-black">
-                      {emp.name}
-                    </p>
-                    <p className="text-xs text-[#888]">{emp.email}</p>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {emp.role}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant="secondary"
-                      className={
-                        emp.status === "active"
-                          ? "bg-green-50 text-green-700 text-[10px]"
-                          : "bg-gray-100 text-gray-500 text-[10px]"
-                      }
-                    >
-                      {emp.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {emp.phone}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-[#888]">
-                    {emp.hireDate}
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((emp) => {
+                const id = String(emp.id);
+                const name =
+                  `${String(emp.first_name ?? "")} ${String(emp.last_name ?? "")}`.trim();
+                const email = emp.email ? String(emp.email) : null;
+                const role = emp.role ? String(emp.role) : "";
+                const status = String(emp.status ?? "active");
+                const phone = emp.phone ? String(emp.phone) : "";
+                const hireDate = emp.hire_date
+                  ? new Date(String(emp.hire_date)).toLocaleDateString(
+                      "en-US",
+                      { month: "short", day: "numeric", year: "numeric" }
+                    )
+                  : "";
+
+                return (
+                  <tr key={id} className="hover:bg-[#f8f8f8]">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-medium text-black">{name}</p>
+                      {email ? (
+                        <p className="text-xs text-[#888]">{email}</p>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">{role}</td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        variant="secondary"
+                        className={
+                          status === "active"
+                            ? "bg-green-50 text-green-700 text-[10px]"
+                            : "bg-gray-100 text-gray-500 text-[10px]"
+                        }
+                      >
+                        {status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">{phone}</td>
+                    <td className="px-4 py-3 text-xs text-[#888]">
+                      {hireDate}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => deleteEmployee.mutate(id)}
+                        className="text-xs text-red-500 hover:text-red-700"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-8 text-center text-sm text-[#888]"
                   >
-                    No employees found
+                    No employees found.
                   </td>
                 </tr>
               )}

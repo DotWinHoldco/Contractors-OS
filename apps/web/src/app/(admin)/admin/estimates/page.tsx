@@ -6,46 +6,62 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, FileText } from "lucide-react";
+import { useEstimates } from "@/lib/hooks/use-estimates";
 
-interface Estimate {
-  id: string;
-  number: string;
-  client: string;
-  project: string;
-  amount: string;
-  status: "draft" | "sent" | "accepted" | "declined";
-  date: string;
-}
+type EstimateStatus = "draft" | "sent" | "accepted" | "declined";
 
-const mockEstimates: Estimate[] = [
-  { id: "1", number: "EST-001", client: "Sarah Mitchell", project: "Kitchen Remodel", amount: "$45,200", status: "accepted", date: "Mar 12, 2026" },
-  { id: "2", number: "EST-002", client: "David Kim", project: "Composite Deck Build", amount: "$28,750", status: "sent", date: "Mar 10, 2026" },
-  { id: "3", number: "EST-003", client: "Jennifer Torres", project: "Basement Finish", amount: "$64,800", status: "draft", date: "Mar 8, 2026" },
-  { id: "4", number: "EST-004", client: "Mike Reynolds", project: "Master Bath Renovation", amount: "$31,500", status: "declined", date: "Mar 5, 2026" },
-  { id: "5", number: "EST-005", client: "Amanda Park", project: "Home Addition", amount: "$95,000", status: "sent", date: "Mar 3, 2026" },
-  { id: "6", number: "EST-006", client: "Greg Stevens", project: "Whole Home Remodel", amount: "$128,400", status: "draft", date: "Mar 1, 2026" },
-];
-
-const statusColors: Record<Estimate["status"], string> = {
+const statusColors: Record<EstimateStatus, string> = {
   draft: "bg-gray-100 text-gray-700",
   sent: "bg-blue-100 text-blue-700",
   accepted: "bg-emerald-100 text-emerald-700",
   declined: "bg-red-100 text-red-700",
 };
 
-const statusOptions: Estimate["status"][] = ["draft", "sent", "accepted", "declined"];
+const statusOptions: EstimateStatus[] = ["draft", "sent", "accepted", "declined"];
+
+function formatCurrency(value: number | null): string {
+  if (value == null) return "$0.00";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export default function EstimatesPage() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<Estimate["status"] | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<EstimateStatus | "all">("all");
+  const { data: estimates, isLoading } = useEstimates();
 
-  const filtered = mockEstimates.filter((e) => {
+  const rows = (estimates ?? []) as Record<string, unknown>[];
+
+  const filtered = rows.filter((e) => {
+    const number = (e.estimate_number as string) ?? (e.number as string) ?? "";
+    const clientObj = e.clients as Record<string, unknown> | null;
+    const clientName = clientObj
+      ? `${String(clientObj.first_name ?? "")} ${String(clientObj.last_name ?? "")}`.trim()
+      : "";
+    const projectObj = e.projects as Record<string, unknown> | null;
+    const projectName = projectObj ? String(projectObj.name ?? "") : "";
+    const status = (e.status as string) ?? "";
+
     const matchesSearch =
-      e.number.toLowerCase().includes(search.toLowerCase()) ||
-      e.client.toLowerCase().includes(search.toLowerCase()) ||
-      e.project.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || e.status === statusFilter;
+      number.toLowerCase().includes(search.toLowerCase()) ||
+      clientName.toLowerCase().includes(search.toLowerCase()) ||
+      projectName.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -55,7 +71,7 @@ export default function EstimatesPage() {
         <div>
           <h1 className="text-2xl font-bold text-black">Estimates</h1>
           <p className="text-sm text-[#888]">
-            {mockEstimates.length} total estimates
+            {rows.length} total estimates
           </p>
         </div>
         <Button
@@ -126,40 +142,70 @@ export default function EstimatesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e0dbd5]">
-              {filtered.map((estimate) => (
-                <tr key={estimate.id} className="hover:bg-[#f8f8f8]">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/estimates/${estimate.id}`}
-                      className="flex items-center gap-2 text-sm font-medium text-black hover:underline"
-                    >
-                      <FileText className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
-                      {estimate.number}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {estimate.client}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {estimate.project}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-black">
-                    {estimate.amount}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge className={`text-[10px] capitalize ${statusColors[estimate.status]}`}>
-                      {estimate.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-[#888]">
-                    {estimate.date}
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
+              {isLoading && (
+                <>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
+                    </tr>
+                  ))}
+                </>
+              )}
+              {!isLoading && filtered.map((estimate) => {
+                const id = String(estimate.id);
+                const number = (estimate.estimate_number as string) ?? (estimate.number as string) ?? id;
+                const clientObj = estimate.clients as Record<string, unknown> | null;
+                const clientName = clientObj
+                  ? `${String(clientObj.first_name ?? "")} ${String(clientObj.last_name ?? "")}`.trim()
+                  : "";
+                const projectObj = estimate.projects as Record<string, unknown> | null;
+                const projectName = projectObj ? String(projectObj.name ?? "") : "";
+                const amount = estimate.total_amount as number | null ?? estimate.amount as number | null;
+                const status = (estimate.status as string) ?? "draft";
+                const date = (estimate.created_at as string) ?? "";
+
+                return (
+                  <tr key={id} className="hover:bg-[#f8f8f8]">
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/admin/estimates/${id}`}
+                        className="flex items-center gap-2 text-sm font-medium text-black hover:underline"
+                      >
+                        <FileText className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
+                        {number}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      {clientName || "\u2014"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      {projectName || "\u2014"}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-black">
+                      {formatCurrency(amount)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge className={`text-[10px] capitalize ${statusColors[status as EstimateStatus] ?? "bg-gray-100 text-gray-700"}`}>
+                        {status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-[#888]">
+                      {formatDate(date)}
+                    </td>
+                  </tr>
+                );
+              })}
+              {!isLoading && filtered.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-sm text-[#888]">
-                    No estimates found.
+                    {rows.length === 0
+                      ? "No estimates yet. Create your first estimate."
+                      : "No estimates found."}
                   </td>
                 </tr>
               )}

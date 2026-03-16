@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft,
   Mail,
@@ -17,57 +18,13 @@ import {
   FileText,
   Bot,
   MessageSquare,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-
-// Mock data
-const leadData: Record<
-  string,
-  {
-    name: string;
-    email: string;
-    phone: string;
-    address: string;
-    project: string;
-    value: number;
-    status: string;
-    source: string;
-    score: number;
-    notes: string[];
-    activity: { action: string; date: string }[];
-    details: Record<string, string>;
-  }
-> = {
-  "1": {
-    name: "Sarah Mitchell",
-    email: "sarah@example.com",
-    phone: "(231) 555-0101",
-    address: "123 Lake Shore Dr, Traverse City, MI 49684",
-    project: "Kitchen Remodel",
-    value: 45000,
-    status: "new",
-    source: "Website Booking",
-    score: 85,
-    notes: ["Very interested in quartz countertops", "Has a timeline of 2 months"],
-    activity: [
-      { action: "Lead created from booking flow", date: "2h ago" },
-      { action: "Estimate generated: $35K-$55K", date: "2h ago" },
-      { action: "Consultation scheduled: March 20, 2:00 PM", date: "2h ago" },
-    ],
-    details: {
-      Scope: "Cabinets, Countertops, Backsplash, Flooring, Lighting",
-      Style: "Modern/Contemporary",
-      Complexity: "Moderate",
-      Timeline: "1-3 months",
-      Budget: "$25K-$50K",
-      Dimensions: "15' × 18'",
-    },
-  },
-};
+import { useLead, useUpdateLead } from "@/lib/hooks/use-leads";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: User },
-  { key: "activity", label: "Activity", icon: Calendar },
   { key: "notes", label: "Notes", icon: MessageSquare },
   { key: "documents", label: "Documents", icon: FileText },
   { key: "ai", label: "AI Summary", icon: Bot },
@@ -77,12 +34,26 @@ const statusOptions = [
   "new",
   "contacted",
   "qualified",
-  "quoted",
+  "needs_analysis",
+  "estimate_scheduled",
+  "estimate_sent",
   "proposal_sent",
   "negotiating",
   "won",
   "lost",
+  "disqualified",
+  "on_hold",
+  "nurturing",
+  "reactivated",
+  "no_response",
+  "archived",
 ];
+
+function scoreColor(score: number) {
+  if (score >= 80) return "text-emerald-600";
+  if (score >= 60) return "text-amber-600";
+  return "text-red-600";
+}
 
 export default function LeadDetailPage({
   params,
@@ -93,17 +64,106 @@ export default function LeadDetailPage({
   const [activeTab, setActiveTab] = useState("overview");
   const [newNote, setNewNote] = useState("");
 
-  const lead = leadData[id] ?? leadData["1"]!;
+  const { data: rawLead, isLoading, error } = useLead(id);
+  const updateLead = useUpdateLead();
+
+  const lead = rawLead as Record<string, unknown> | undefined;
+
+  function handleStatusChange(newStatus: string) {
+    updateLead.mutate({ id, status: newStatus as never });
+  }
 
   function handleAddNote() {
     if (!newNote.trim()) return;
-    toast.success("Note added");
-    setNewNote("");
+    const existing = String(lead?.internal_notes ?? "");
+    const timestamp = new Date().toLocaleString();
+    const updated = existing
+      ? `${existing}\n\n[${timestamp}]\n${newNote.trim()}`
+      : `[${timestamp}]\n${newNote.trim()}`;
+    updateLead.mutate(
+      { id, internal_notes: updated },
+      { onSuccess: () => setNewNote("") }
+    );
   }
 
   function handleConvert() {
-    toast.success("Lead converted to client");
+    updateLead.mutate(
+      { id, status: "won" as never },
+      {
+        onSuccess: () => toast.success("Lead marked as won"),
+      }
+    );
   }
+
+  if (isLoading) {
+    return (
+      <div>
+        <Skeleton className="mb-3 h-4 w-24" />
+        <Skeleton className="mb-2 h-8 w-64" />
+        <Skeleton className="mb-6 h-4 w-40" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-4">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !lead) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <AlertCircle className="h-8 w-8 text-red-500" />
+        <p className="mt-2 text-sm text-red-600">Failed to load lead</p>
+        {error ? (
+          <p className="text-xs text-[#888]">{String((error as Error).message)}</p>
+        ) : null}
+        <Link href="/admin/leads" className="mt-4 text-xs text-[#888] hover:text-black underline">
+          Back to Leads
+        </Link>
+      </div>
+    );
+  }
+
+  const firstName = String(lead.first_name ?? "");
+  const lastName = String(lead.last_name ?? "");
+  const fullName = `${firstName} ${lastName}`.trim() || "Unnamed";
+  const email = String(lead.email ?? "");
+  const phone = String(lead.phone ?? "");
+  const address = [
+    lead.address_line1 as string | null,
+    lead.city as string | null,
+    lead.state as string | null,
+    lead.zip_code as string | null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const tradeCategory = String(lead.trade_category ?? "").replace(/_/g, " ");
+  const projectType = String(lead.project_type ?? "").replace(/_/g, " ");
+  const projectDesc = String(lead.project_description ?? "");
+  const estimatedValue = lead.ai_estimated_value as number | null;
+  const budgetLow = lead.budget_range_low as number | null;
+  const budgetHigh = lead.budget_range_high as number | null;
+  const status = String(lead.status ?? "new");
+  const source = String(lead.source ?? "").replace(/_/g, " ");
+  const score = (lead.score as number | null) ?? 0;
+  const temperature = String(lead.temperature ?? "");
+  const priority = String(lead.priority ?? "");
+  const internalNotes = String(lead.internal_notes ?? "");
+  const aiSummary = String(lead.ai_summary ?? "");
+
+  const budgetDisplay =
+    budgetLow != null && budgetHigh != null
+      ? `$${Number(budgetLow).toLocaleString()} - $${Number(budgetHigh).toLocaleString()}`
+      : budgetLow != null
+        ? `$${Number(budgetLow).toLocaleString()}+`
+        : budgetHigh != null
+          ? `Up to $${Number(budgetHigh).toLocaleString()}`
+          : null;
 
   return (
     <div>
@@ -118,18 +178,23 @@ export default function LeadDetailPage({
         </Link>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-black">{lead.name}</h1>
-            <p className="text-sm text-[#888]">{lead.project}</p>
+            <h1 className="text-2xl font-bold text-black">{fullName}</h1>
+            {tradeCategory ? (
+              <p className="text-sm text-[#888]">{tradeCategory}</p>
+            ) : null}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="text-xs">
-              <Mail className="mr-1 h-3 w-3" />
-              Email
-            </Button>
+            {email ? (
+              <Button variant="outline" size="sm" className="text-xs">
+                <Mail className="mr-1 h-3 w-3" />
+                Email
+              </Button>
+            ) : null}
             <Button
               size="sm"
               className="bg-black text-xs text-white hover:bg-black/90"
               onClick={handleConvert}
+              disabled={updateLead.isPending}
             >
               Convert to Client
             </Button>
@@ -168,18 +233,27 @@ export default function LeadDetailPage({
                   </h3>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
-                    <span>{lead.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
-                    <span>{lead.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
-                    <span>{lead.address}</span>
-                  </div>
+                  {email ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
+                      <span>{email}</span>
+                    </div>
+                  ) : null}
+                  {phone ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
+                      <span>{phone}</span>
+                    </div>
+                  ) : null}
+                  {address ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-[#888]" strokeWidth={1.5} />
+                      <span>{address}</span>
+                    </div>
+                  ) : null}
+                  {!email && !phone && !address ? (
+                    <p className="text-xs text-[#888]">No contact info available</p>
+                  ) : null}
                 </CardContent>
               </Card>
 
@@ -191,37 +265,58 @@ export default function LeadDetailPage({
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {Object.entries(lead.details).map(([key, value]) => (
-                      <div key={key}>
+                    {tradeCategory ? (
+                      <div>
                         <p className="text-xs font-bold uppercase tracking-widest text-[#888]">
-                          {key}
+                          Trade
                         </p>
-                        <p className="mt-0.5 text-sm text-black">{value}</p>
+                        <p className="mt-0.5 text-sm text-black">{tradeCategory}</p>
                       </div>
-                    ))}
+                    ) : null}
+                    {projectType ? (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-[#888]">
+                          Type
+                        </p>
+                        <p className="mt-0.5 text-sm text-black">{projectType}</p>
+                      </div>
+                    ) : null}
+                    {budgetDisplay ? (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-[#888]">
+                          Budget
+                        </p>
+                        <p className="mt-0.5 text-sm text-black">{budgetDisplay}</p>
+                      </div>
+                    ) : null}
+                    {temperature ? (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-[#888]">
+                          Temperature
+                        </p>
+                        <p className="mt-0.5 text-sm text-black capitalize">{temperature}</p>
+                      </div>
+                    ) : null}
+                    {priority ? (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-[#888]">
+                          Priority
+                        </p>
+                        <p className="mt-0.5 text-sm text-black capitalize">{priority}</p>
+                      </div>
+                    ) : null}
+                    {projectDesc ? (
+                      <div className="sm:col-span-2">
+                        <p className="text-xs font-bold uppercase tracking-widest text-[#888]">
+                          Description
+                        </p>
+                        <p className="mt-0.5 text-sm text-black">{projectDesc}</p>
+                      </div>
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>
             </div>
-          )}
-
-          {/* Activity Tab */}
-          {activeTab === "activity" && (
-            <Card className="border border-[#e0dbd5] shadow-none">
-              <CardContent className="p-5">
-                <div className="space-y-4">
-                  {lead.activity.map((item, i) => (
-                    <div key={i} className="flex gap-3">
-                      <div className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-black" />
-                      <div>
-                        <p className="text-sm text-black">{item.action}</p>
-                        <p className="text-xs text-[#888]">{item.date}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           )}
 
           {/* Notes Tab */}
@@ -238,20 +333,29 @@ export default function LeadDetailPage({
                   <Button
                     size="sm"
                     onClick={handleAddNote}
+                    disabled={updateLead.isPending}
                     className="mt-2 bg-black text-xs text-white hover:bg-black/90"
                   >
                     Add Note
                   </Button>
                 </CardContent>
               </Card>
-              {lead.notes.map((note, i) => (
-                <Card key={i} className="border border-[#e0dbd5] shadow-none">
+              {internalNotes ? (
+                <Card className="border border-[#e0dbd5] shadow-none">
                   <CardContent className="p-4">
-                    <p className="text-sm text-[#555]">{note}</p>
-                    <p className="mt-2 text-xs text-[#888]">Added 2h ago</p>
+                    <p className="whitespace-pre-wrap text-sm text-[#555]">
+                      {internalNotes}
+                    </p>
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                <Card className="border border-[#e0dbd5] shadow-none">
+                  <CardContent className="p-10 text-center">
+                    <MessageSquare className="mx-auto h-8 w-8 text-[#ccc]" strokeWidth={1.5} />
+                    <p className="mt-2 text-sm text-[#888]">No notes yet</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 
@@ -275,30 +379,15 @@ export default function LeadDetailPage({
                     AI Analysis
                   </p>
                 </div>
-                <p className="text-sm leading-relaxed text-[#555]">
-                  High-value kitchen remodel lead with a clear timeline and budget.
-                  The homeowner is interested in modern contemporary style with quartz
-                  countertops. Consultation is scheduled for this week. Recommend
-                  preparing a detailed scope document with material options and
-                  pricing tiers before the meeting.
-                </p>
-                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Recommended Next Steps
-                </p>
-                <ul className="mt-2 space-y-1.5 text-sm text-[#555]">
-                  <li className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-black" />
-                    Prepare material selection sheets (cabinets, countertops, backsplash)
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-black" />
-                    Review property photos before consultation
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-black" />
-                    Bring similar project portfolio (Modern Kitchen Traverse City)
-                  </li>
-                </ul>
+                {aiSummary ? (
+                  <p className="text-sm leading-relaxed text-[#555]">
+                    {aiSummary}
+                  </p>
+                ) : (
+                  <p className="text-sm text-[#888]">
+                    No AI summary available for this lead yet.
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
@@ -313,10 +402,14 @@ export default function LeadDetailPage({
                 <p className="text-xs font-bold uppercase tracking-widest text-[#888]">
                   Status
                 </p>
-                <select className="mt-1 w-full rounded-md border border-[#e0dbd5] bg-white px-3 py-1.5 text-sm">
+                <select
+                  value={status}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-[#e0dbd5] bg-white px-3 py-1.5 text-sm"
+                >
                   {statusOptions.map((s) => (
-                    <option key={s} value={s} selected={s === lead.status}>
-                      {s.replace("_", " ")}
+                    <option key={s} value={s}>
+                      {s.replace(/_/g, " ")}
                     </option>
                   ))}
                 </select>
@@ -326,8 +419,8 @@ export default function LeadDetailPage({
                 <p className="text-xs font-bold uppercase tracking-widest text-[#888]">
                   Score
                 </p>
-                <p className="mt-1 text-2xl font-bold text-emerald-600">
-                  {lead.score}
+                <p className={`mt-1 text-2xl font-bold ${scoreColor(score)}`}>
+                  {score}
                 </p>
               </div>
 
@@ -336,16 +429,20 @@ export default function LeadDetailPage({
                   Estimated Value
                 </p>
                 <p className="mt-1 text-lg font-bold text-black">
-                  ${lead.value.toLocaleString()}
+                  {estimatedValue != null
+                    ? `$${Number(estimatedValue).toLocaleString()}`
+                    : "—"}
                 </p>
               </div>
 
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Source
-                </p>
-                <p className="mt-1 text-sm text-black">{lead.source}</p>
-              </div>
+              {source ? (
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#888]">
+                    Source
+                  </p>
+                  <p className="mt-1 text-sm text-black">{source}</p>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 

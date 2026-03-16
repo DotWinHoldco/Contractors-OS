@@ -2,41 +2,49 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
-
-interface Client {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  type: string;
-  totalProjects: number;
-  totalRevenue: string;
-  lastContact: string;
-  tags: string[];
-}
-
-const mockClients: Client[] = [
-  { id: "1", name: "Sarah Mitchell", email: "sarah@example.com", phone: "(231) 555-0101", type: "Residential", totalProjects: 1, totalRevenue: "$45,000", lastContact: "Today", tags: ["VIP"] },
-  { id: "2", name: "David Kim", email: "david@example.com", phone: "(231) 555-0102", type: "Residential", totalProjects: 2, totalRevenue: "$73,000", lastContact: "Yesterday", tags: [] },
-  { id: "3", name: "Jennifer Torres", email: "jennifer@example.com", phone: "(231) 555-0103", type: "Residential", totalProjects: 1, totalRevenue: "$65,000", lastContact: "3d ago", tags: ["Referral Source"] },
-  { id: "4", name: "Mike Reynolds", email: "mike@example.com", phone: "(231) 555-0104", type: "Residential", totalProjects: 3, totalRevenue: "$142,000", lastContact: "1w ago", tags: ["VIP", "Repeat"] },
-  { id: "5", name: "Grand Traverse Rentals", email: "info@gtr.com", phone: "(231) 555-0200", type: "Commercial", totalProjects: 5, totalRevenue: "$380,000", lastContact: "2d ago", tags: ["Commercial", "VIP"] },
-  { id: "6", name: "Lisa Chen", email: "lisa@example.com", phone: "(231) 555-0105", type: "Residential", totalProjects: 1, totalRevenue: "$18,000", lastContact: "1w ago", tags: [] },
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, Search, AlertCircle } from "lucide-react";
+import { useClients } from "@/lib/hooks/use-clients";
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
 
-  const filtered = mockClients.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.email.toLowerCase().includes(search.toLowerCase())
-  );
+  // Pass search to the hook so it filters server-side via ilike
+  const { data: clients, isLoading, error } = useClients(undefined, search || undefined);
+
+  const allClients = (clients ?? []) as Record<string, unknown>[];
+
+  if (isLoading) {
+    return (
+      <div>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-black">Clients</h1>
+            <Skeleton className="mt-1 h-4 w-28" />
+          </div>
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-md" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <AlertCircle className="h-8 w-8 text-red-500" />
+        <p className="mt-2 text-sm text-red-600">Failed to load clients</p>
+        <p className="text-xs text-[#888]">{String((error as Error).message)}</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -44,7 +52,7 @@ export default function ClientsPage() {
         <div>
           <h1 className="text-2xl font-bold text-black">Clients</h1>
           <p className="text-sm text-[#888]">
-            {mockClients.length} total clients
+            {allClients.length} total clients
           </p>
         </div>
         <Button
@@ -68,70 +76,112 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      <Card className="border border-[#e0dbd5] shadow-none">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[#e0dbd5] text-left">
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Name
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Type
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Projects
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Revenue
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Last Contact
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Tags
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e0dbd5]">
-              {filtered.map((client) => (
-                <tr key={client.id} className="hover:bg-[#f8f8f8]">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/clients/${client.id}`}
-                      className="text-sm font-medium text-black hover:underline"
-                    >
-                      {client.name}
-                    </Link>
-                    <p className="text-xs text-[#888]">{client.email}</p>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {client.type}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#555]">
-                    {client.totalProjects}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-black">
-                    {client.totalRevenue}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-[#888]">
-                    {client.lastContact}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {client.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-[10px]">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </td>
+      {allClients.length === 0 ? (
+        <Card className="border border-[#e0dbd5] shadow-none">
+          <CardContent className="p-10 text-center">
+            <p className="text-sm text-[#888]">
+              {search ? "No clients match your search" : "No clients yet"}
+            </p>
+            {!search ? (
+              <p className="mt-1 text-xs text-[#aaa]">
+                Add your first client or convert a lead.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border border-[#e0dbd5] shadow-none">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#e0dbd5] text-left">
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
+                    Type
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
+                    Projects
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
+                    Revenue
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
+                    Last Contact
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
+                    Tags
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody className="divide-y divide-[#e0dbd5]">
+                {allClients.map((client) => {
+                  const clientId = String(client.id);
+                  const firstName = String(client.first_name ?? "");
+                  const lastName = String(client.last_name ?? "");
+                  const displayName = client.display_name
+                    ? String(client.display_name)
+                    : `${firstName} ${lastName}`.trim() || "Unnamed";
+                  const email = String(client.email ?? "");
+                  const clientType = String(client.client_type ?? "").replace(/_/g, " ");
+                  const totalProjects = (client.total_projects as number | null) ?? 0;
+                  const totalRevenue = (client.total_revenue as number | null) ?? 0;
+                  const lastContactDate = client.last_contact_date as string | null;
+                  const tags = (client.tags as string[] | null) ?? [];
+                  const isVip = client.is_vip as boolean | null;
+
+                  const lastContactDisplay = lastContactDate
+                    ? new Date(lastContactDate).toLocaleDateString()
+                    : "—";
+
+                  return (
+                    <tr key={clientId} className="hover:bg-[#f8f8f8]">
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/admin/clients/${clientId}`}
+                          className="text-sm font-medium text-black hover:underline"
+                        >
+                          {displayName}
+                        </Link>
+                        {email ? (
+                          <p className="text-xs text-[#888]">{email}</p>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3 text-sm capitalize text-[#555]">
+                        {clientType}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[#555]">
+                        {totalProjects}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-black">
+                        ${Number(totalRevenue).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[#888]">
+                        {lastContactDisplay}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {isVip ? (
+                            <Badge variant="secondary" className="text-[10px]">
+                              VIP
+                            </Badge>
+                          ) : null}
+                          {tags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-[10px]">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
