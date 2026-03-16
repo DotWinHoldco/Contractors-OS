@@ -6,47 +6,40 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, LayoutGrid, List } from "lucide-react";
-
-interface Project {
-  id: string;
-  name: string;
-  number: string;
-  client: string;
-  status: string;
-  type: string;
-  value: string;
-  progress: number;
-  startDate: string;
-  endDate: string;
-  manager: string;
-}
-
-const mockProjects: Project[] = [
-  { id: "1", name: "Mitchell Kitchen Remodel", number: "PRJ-001", client: "Sarah Mitchell", status: "in_progress", type: "Kitchen", value: "$45,000", progress: 35, startDate: "Mar 5", endDate: "Apr 16", manager: "John D." },
-  { id: "2", name: "Kim Composite Deck", number: "PRJ-002", client: "David Kim", status: "planning", type: "Deck", value: "$28,000", progress: 0, startDate: "Apr 1", endDate: "Apr 22", manager: "Mike S." },
-  { id: "3", name: "Torres Basement Finish", number: "PRJ-003", client: "Jennifer Torres", status: "in_progress", type: "Basement", value: "$65,000", progress: 60, startDate: "Feb 10", endDate: "Apr 7", manager: "John D." },
-  { id: "4", name: "Reynolds Master Bath", number: "PRJ-004", client: "Mike Reynolds", status: "completed", type: "Bathroom", value: "$32,000", progress: 100, startDate: "Jan 15", endDate: "Feb 14", manager: "Mike S." },
-  { id: "5", name: "Park Home Addition", number: "PRJ-005", client: "Amanda Park", status: "planning", type: "Addition", value: "$95,000", progress: 0, startDate: "May 1", endDate: "Aug 30", manager: "John D." },
-  { id: "6", name: "Stevens Whole Home", number: "PRJ-006", client: "Greg Stevens", status: "in_progress", type: "Remodel", value: "$130,000", progress: 15, startDate: "Mar 1", endDate: "May 30", manager: "John D." },
-];
+import { useProjects } from "@/lib/hooks/use-projects";
 
 const statusColors: Record<string, string> = {
+  inquiry: "bg-slate-100 text-slate-700",
   planning: "bg-purple-100 text-purple-700",
+  pre_construction: "bg-indigo-100 text-indigo-700",
   in_progress: "bg-blue-100 text-blue-700",
   on_hold: "bg-amber-100 text-amber-700",
   completed: "bg-emerald-100 text-emerald-700",
+  cancelled: "bg-red-100 text-red-700",
+  warranty: "bg-teal-100 text-teal-700",
 };
+
+function fmt(n: number | null) {
+  if (!n) return "—";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(n);
+}
 
 export default function ProjectsPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
+  const { data: projects, isLoading } = useProjects();
 
-  const filtered = mockProjects.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.client.toLowerCase().includes(search.toLowerCase()) ||
-      p.number.toLowerCase().includes(search.toLowerCase())
+  const filtered = (projects || []).filter(
+    (p: Record<string, unknown>) => {
+      const name = (p.name as string || "").toLowerCase();
+      const number = (p.project_number as string || "").toLowerCase();
+      const client = p.clients as Record<string, unknown> | null;
+      const clientName = client ? `${client.first_name || ""} ${client.last_name || ""}`.toLowerCase() : "";
+      const q = search.toLowerCase();
+      return name.includes(q) || number.includes(q) || clientName.includes(q);
+    }
   );
 
   return (
@@ -55,16 +48,15 @@ export default function ProjectsPage() {
         <div>
           <h1 className="text-2xl font-bold text-black">Projects</h1>
           <p className="text-sm text-[#888]">
-            {mockProjects.length} total projects
+            {projects?.length || 0} total projects
           </p>
         </div>
-        <Button
-          size="sm"
-          className="bg-black text-xs text-white hover:bg-black/90"
-        >
-          <Plus className="mr-1 h-3 w-3" />
-          New Project
-        </Button>
+        <Link href="/admin/projects">
+          <Button size="sm" className="bg-black text-xs text-white hover:bg-black/90">
+            <Plus className="mr-1 h-3 w-3" />
+            New Project
+          </Button>
+        </Link>
       </div>
 
       <div className="mb-4 flex items-center gap-3">
@@ -78,139 +70,108 @@ export default function ProjectsPage() {
           />
         </div>
         <div className="flex rounded-md border border-[#e0dbd5]">
-          <button
-            onClick={() => setView("grid")}
-            className={`p-2 ${view === "grid" ? "bg-[#f0edea]" : ""}`}
-          >
+          <button onClick={() => setView("grid")} className={`p-2 ${view === "grid" ? "bg-[#f0edea]" : ""}`}>
             <LayoutGrid className="h-4 w-4" />
           </button>
-          <button
-            onClick={() => setView("list")}
-            className={`p-2 ${view === "list" ? "bg-[#f0edea]" : ""}`}
-          >
+          <button onClick={() => setView("list")} className={`p-2 ${view === "list" ? "bg-[#f0edea]" : ""}`}>
             <List className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {view === "grid" && (
+      {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((project) => (
-            <Link key={project.id} href={`/admin/projects/${project.id}`}>
-              <Card className="h-full border border-[#e0dbd5] shadow-none transition-colors hover:border-black">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <Badge
-                      className={`text-[10px] ${statusColors[project.status] ?? ""}`}
-                    >
-                      {project.status.replace("_", " ")}
-                    </Badge>
-                    <span className="text-xs text-[#888]">
-                      {project.number}
-                    </span>
-                  </div>
-                  <h3 className="mt-2 text-base font-semibold text-black">
-                    {project.name}
-                  </h3>
-                  <p className="text-xs text-[#888]">{project.client}</p>
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#888]">Progress</span>
-                      <span className="font-semibold text-black">
-                        {project.progress}%
-                      </span>
-                    </div>
-                    <div className="mt-1 h-1.5 w-full rounded-full bg-[#e0dbd5]">
-                      <div
-                        className="h-full rounded-full bg-black"
-                        style={{ width: `${project.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-black">
-                      {project.value}
-                    </span>
-                    <span className="text-xs text-[#888]">
-                      {project.startDate} – {project.endDate}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-44 w-full rounded-lg" />
           ))}
         </div>
-      )}
+      ) : !filtered.length ? (
+        <Card className="border border-[#e0dbd5] shadow-none">
+          <CardContent className="py-12 text-center">
+            <p className="text-sm text-[#888]">No projects found. Create your first project to get started.</p>
+          </CardContent>
+        </Card>
+      ) : view === "grid" ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((project: Record<string, unknown>) => {
+            const client = project.clients as Record<string, unknown> | null;
+            const clientName = client ? `${client.first_name || ""} ${client.last_name || ""}`.trim() : "—";
+            const status = (project.status as string) || "inquiry";
+            const progress = (project.completion_percentage as number) || 0;
 
-      {view === "list" && (
+            return (
+              <Link key={project.id as string} href={`/admin/projects/${project.id}`}>
+                <Card className="h-full border border-[#e0dbd5] shadow-none transition-colors hover:border-black">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between">
+                      <Badge className={`text-[10px] ${statusColors[status] ?? "bg-slate-100 text-slate-700"}`}>
+                        {status.replace(/_/g, " ")}
+                      </Badge>
+                      <span className="text-xs text-[#888]">{project.project_number as string || ""}</span>
+                    </div>
+                    <h3 className="mt-2 text-base font-semibold text-black">{project.name as string}</h3>
+                    <p className="text-xs text-[#888]">{clientName}</p>
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[#888]">Progress</span>
+                        <span className="font-semibold text-black">{progress}%</span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full rounded-full bg-[#e0dbd5]">
+                        <div className="h-full rounded-full bg-[#D4A84B]" style={{ width: `${progress}%` }} />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-black">{fmt(project.estimated_cost as number | null)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
         <Card className="border border-[#e0dbd5] shadow-none">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#e0dbd5] text-left">
-                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                    Project
-                  </th>
-                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                    Client
-                  </th>
-                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                    Value
-                  </th>
-                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                    Progress
-                  </th>
-                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                    Dates
-                  </th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Project</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Client</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Status</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Value</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">Progress</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e0dbd5]">
-                {filtered.map((project) => (
-                  <tr key={project.id} className="hover:bg-[#f8f8f8]">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/admin/projects/${project.id}`}
-                        className="text-sm font-medium text-black hover:underline"
-                      >
-                        {project.name}
-                      </Link>
-                      <p className="text-xs text-[#888]">{project.number}</p>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-[#555]">
-                      {project.client}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        className={`text-[10px] ${statusColors[project.status] ?? ""}`}
-                      >
-                        {project.status.replace("_", " ")}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-black">
-                      {project.value}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 rounded-full bg-[#e0dbd5]">
-                          <div
-                            className="h-full rounded-full bg-black"
-                            style={{ width: `${project.progress}%` }}
-                          />
+                {filtered.map((project: Record<string, unknown>) => {
+                  const client = project.clients as Record<string, unknown> | null;
+                  const clientName = client ? `${client.first_name || ""} ${client.last_name || ""}`.trim() : "—";
+                  const status = (project.status as string) || "inquiry";
+                  const progress = (project.completion_percentage as number) || 0;
+                  return (
+                    <tr key={project.id as string} className="hover:bg-[#f8f8f8]">
+                      <td className="px-4 py-3">
+                        <Link href={`/admin/projects/${project.id}`} className="text-sm font-medium text-black hover:underline">
+                          {project.name as string}
+                        </Link>
+                        <p className="text-xs text-[#888]">{project.project_number as string || ""}</p>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[#555]">{clientName}</td>
+                      <td className="px-4 py-3">
+                        <Badge className={`text-[10px] ${statusColors[status] ?? ""}`}>{status.replace(/_/g, " ")}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-black">{fmt(project.estimated_cost as number | null)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-16 rounded-full bg-[#e0dbd5]">
+                            <div className="h-full rounded-full bg-[#D4A84B]" style={{ width: `${progress}%` }} />
+                          </div>
+                          <span className="text-xs text-[#888]">{progress}%</span>
                         </div>
-                        <span className="text-xs text-[#888]">
-                          {project.progress}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-[#888]">
-                      {project.startDate} – {project.endDate}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
