@@ -137,7 +137,27 @@ export default function BookPage() {
             const schedule = JSON.parse(jsonMatch[1].trim()) as SolutionSchedule;
             store.setSolutionSchedule(schedule);
             store.setStage(5);
-            // Navigate to plan page
+
+            // Persist lead, client, project, phases to database
+            const currentState = useBookingStore.getState();
+            try {
+              await callEdgeFunction("leads-capture", {
+                name: currentState.name,
+                email: currentState.email,
+                phone: currentState.phone,
+                project_type: currentState.projectType,
+                project_type_label: currentState.projectTypeLabel,
+                scope: currentState.scope,
+                timeline: currentState.timeline,
+                chat_transcript: currentState.chatMessages,
+                solution_schedule: schedule,
+                conversation_id: currentState.conversationId,
+              });
+            } catch (captureErr) {
+              console.error("Lead capture failed:", captureErr);
+              // Don't block the user from seeing their plan
+            }
+
             router.push("/book/plan");
           } catch {
             // AI didn't format JSON correctly, continue chat
