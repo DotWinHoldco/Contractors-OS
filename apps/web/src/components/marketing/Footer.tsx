@@ -20,15 +20,15 @@ const legalLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-[#e0dbd5] bg-white">
-      <div className="mx-auto max-w-7xl px-6 py-16">
+    <footer className="bg-[#0A0A0A] text-white">
+      <div className="mx-auto max-w-7xl px-6 py-20">
         <div className="grid gap-12 md:grid-cols-4">
           {/* Brand */}
           <div>
-            <span className="font-[family-name:var(--font-logo)] text-xl text-black">
+            <span className="font-[family-name:var(--font-logo)] text-xl text-white">
               .win
             </span>
-            <p className="mt-3 text-sm leading-relaxed text-[#888]">
+            <p className="mt-4 text-sm leading-relaxed text-white/40">
               The operating system for contractor businesses. Client acquisition,
               project management, and AI — all in one platform.
             </p>
@@ -36,15 +36,15 @@ export function Footer() {
 
           {/* Services */}
           <div>
-            <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-[#888]">
+            <h4 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#D4A84B]">
               Services
             </h4>
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-3">
               {serviceLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-sm text-[#555] transition-colors hover:text-black"
+                  className="text-sm text-white/40 transition-colors hover:text-white"
                 >
                   {link.label}
                 </Link>
@@ -54,15 +54,15 @@ export function Footer() {
 
           {/* Company */}
           <div>
-            <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-[#888]">
+            <h4 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#D4A84B]">
               Company
             </h4>
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-3">
               {companyLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-sm text-[#555] transition-colors hover:text-black"
+                  className="text-sm text-white/40 transition-colors hover:text-white"
                 >
                   {link.label}
                 </Link>
@@ -72,15 +72,15 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-[#888]">
+            <h4 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#D4A84B]">
               Legal
             </h4>
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-3">
               {legalLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-sm text-[#555] transition-colors hover:text-black"
+                  className="text-sm text-white/40 transition-colors hover:text-white"
                 >
                   {link.label}
                 </Link>
@@ -89,13 +89,13 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-[#e0dbd5] pt-8 md:flex-row">
-          <p className="text-xs text-[#888]">
+        <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 md:flex-row">
+          <p className="text-xs text-white/30">
             &copy; {new Date().getFullYear()} All rights reserved.
           </p>
-          <p className="flex items-center gap-1.5 text-xs text-[#bbb]">
+          <p className="flex items-center gap-1.5 text-xs text-white/20">
             Powered by{" "}
-            <span className="font-[family-name:var(--font-logo)] text-[#888]">
+            <span className="font-[family-name:var(--font-logo)] text-white/40">
               .win
             </span>
           </p>

@@ -10,7 +10,7 @@
   --font-sans: "Outfit", sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: "Outfit", sans-serif;
-  --font-display: "Playfair Display", serif;
+  --font-display: "Yeseva One", serif;
   --font-logo: "Yeseva One", serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -161,10 +161,12 @@
   }
 }
 
-/* Scroll reveal animations */
+/* ===== CINEMATIC ANIMATIONS ===== */
+
+/* Scroll reveal */
 .reveal {
   opacity: 0;
-  transform: translateY(50px);
+  transform: translateY(40px);
   transition: opacity 0.9s var(--ease-expo), transform 0.9s var(--ease-expo);
 }
 .reveal.visible {
@@ -186,3 +188,80 @@
 .s6 { transition-delay: 0.6s; }
 .s7 { transition-delay: 0.7s; }
 .s8 { transition-delay: 0.8s; }
+
+/* Gold CTA pulse */
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 168, 75, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(212, 168, 75, 0); }
+}
+.btn-gold-pulse {
+  animation: pulse-gold 2.5s ease-in-out infinite;
+}
+
+/* Scroll indicator float */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.scroll-indicator {
+  animation: float 2s ease-in-out infinite;
+}
+
+/* Film grain overlay */
+.noise::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  animation: grain 8s steps(10) infinite;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.04;
+}
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  30% { transform: translate(3%, -15%); }
+  50% { transform: translate(12%, 9%); }
+  70% { transform: translate(9%, 4%); }
+  90% { transform: translate(-1%, 7%); }
+}
+
+/* Progress bar shimmer */
+.progress-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: shimmer 2s infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Intake stage transitions */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.intake-stage {
+  animation: fadeUp 0.5s var(--ease-expo);
+}
+
+/* Typing indicator */
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Print styles */
+@media print {
+  body { background: white !important; color: black !important; }
+  .no-print, header, footer, nav, .btn-gold-pulse { display: none !important; }
+  .noise::before { display: none !important; }
+  .print-only { display: block !important; }
+  * { box-shadow: none !important; animation: none !important; }
+}

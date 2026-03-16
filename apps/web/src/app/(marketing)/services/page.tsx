@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 
 export const metadata = {
   title: "Services | Contractors OS",
@@ -23,62 +22,67 @@ const services = [
 export default function ServicesPage() {
   return (
     <>
-      <section className="bg-black py-16 text-white">
-        <div className="mx-auto max-w-4xl px-6 text-center">
-          <p className="mb-4 text-xs font-bold uppercase tracking-[4px] text-white/30">
+      {/* Hero — Dark */}
+      <section className="noise relative flex min-h-[50vh] items-center overflow-hidden bg-black pt-[72px]">
+        <div className="relative z-10 mx-auto max-w-[900px] px-6 py-20 text-center">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#D4A84B]">
             Our Services
           </p>
-          <h1 className="font-[family-name:var(--font-display)] text-4xl font-bold md:text-5xl">
+          <h1 className="font-[family-name:var(--font-display)] text-[clamp(36px,5vw,56px)] leading-[1.1] tracking-[-0.02em] text-white">
             What We Build
           </h1>
-          <p className="mt-4 text-lg text-white/60">
-            Professional home services for every project size
+          <p className="mt-4 text-lg text-white/50">
+            Professional home services for every project size.
           </p>
         </div>
       </section>
 
-      <section className="bg-white py-16">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((service) => (
-              <Link key={service.slug} href={`/services/${service.slug}`}>
-                <Card className="h-full border border-[#e0dbd5] bg-white shadow-none transition-colors hover:border-black">
-                  <CardContent className="p-6">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#bbb]">
+      {/* Services Grid — Light */}
+      <section className="bg-white py-[100px]">
+        <div className="mx-auto max-w-[1100px] px-6">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {services.map((service, i) => (
+              <ScrollReveal key={service.slug} delay={0.05 * (i + 1)}>
+                <Link href={`/services/${service.slug}`}>
+                  <div className="group h-full border border-[#F0EDEA] p-10 transition-all duration-300 hover:border-[#D4A84B] hover:-translate-y-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#A39E97]">
                       {service.category}
                     </span>
-                    <h3 className="mt-2 text-base font-semibold text-black">
+                    <h3 className="mt-3 text-lg font-semibold text-[#1A1A1A]">
                       {service.name}
                     </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-[#888]">
+                    <p className="mt-3 text-sm leading-relaxed text-[#A39E97]">
                       {service.desc}
                     </p>
-                    <span className="mt-4 inline-flex items-center text-xs font-semibold uppercase tracking-wider text-black">
+                    <span className="mt-6 inline-flex items-center text-xs font-semibold uppercase tracking-[0.08em] text-[#D4A84B] opacity-0 transition-opacity group-hover:opacity-100">
                       Learn More
                       <ArrowRight className="ml-1 h-3 w-3" />
                     </span>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </Link>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-black py-16 text-white text-center">
-        <div className="mx-auto max-w-2xl px-6">
-          <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold">
-            Don&apos;t See Your Project?
-          </h2>
-          <p className="mt-3 text-white/60">
-            We handle a wide range of projects. Tell us what you need and we&apos;ll
-            provide a custom quote.
-          </p>
-          <Link href="/book" className="mt-6 inline-block">
-            <Button className="rounded-md bg-white px-8 text-sm font-bold uppercase tracking-wider text-black hover:bg-white/90">
-              Get a Custom Quote
-            </Button>
-          </Link>
+      {/* CTA — Dark */}
+      <section className="noise relative overflow-hidden bg-black py-[100px]">
+        <div className="relative z-10 mx-auto max-w-[600px] px-6 text-center">
+          <ScrollReveal>
+            <h2 className="font-[family-name:var(--font-display)] text-[clamp(28px,4vw,40px)] leading-[1.1] tracking-[-0.02em] text-white">
+              Don&rsquo;t See Your Project?
+            </h2>
+            <p className="mt-4 text-base text-white/50">
+              We handle a wide range of projects. Tell us what you need and we&rsquo;ll build your custom plan.
+            </p>
+            <Link
+              href="/book"
+              className="btn-gold-pulse mt-8 inline-flex items-center bg-[#D4A84B] px-10 py-4 text-sm font-semibold uppercase tracking-[0.08em] text-black transition-all hover:bg-[#C49A3F]"
+            >
+              Build Your Free Project Plan
+            </Link>
+          </ScrollReveal>
         </div>
       </section>
     </>

@@ -1,92 +1,81 @@
 import { create } from "zustand";
 
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface SolutionSchedule {
+  project_title: string;
+  estimated_range: string;
+  estimated_duration: string;
+  phases: Array<{
+    name: string;
+    duration: string;
+    description: string;
+    cost_range: string;
+  }>;
+  key_decisions: string[];
+  risk_flags: string[];
+  next_steps: string[];
+}
+
 export interface BookingState {
-  step: number;
+  stage: number; // 1=contact, 2=project type, 3=scope/timeline, 4=AI chat, 5=report
+  name: string;
+  email: string;
+  phone: string;
   projectType: string;
   projectTypeLabel: string;
-  answers: Record<string, string | string[]>;
-  dimensions: { length: string; width: string };
-  complexity: "simple" | "moderate" | "complex" | "";
+  scope: string;
   timeline: string;
-  budgetRange: string;
-  estimate: {
-    low: number;
-    high: number;
-    duration: string;
-    factors: string[];
-  } | null;
-  estimateLoading: boolean;
-  consultationDate: string;
-  consultationTime: string;
-  contact: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-  };
-  setStep: (step: number) => void;
-  nextStep: () => void;
-  prevStep: () => void;
+  chatMessages: ChatMessage[];
+  chatLoading: boolean;
+  solutionSchedule: SolutionSchedule | null;
+  conversationId: string | null;
+  setStage: (stage: number) => void;
+  nextStage: () => void;
+  prevStage: () => void;
+  setContact: (name: string, email: string, phone: string) => void;
   setProjectType: (slug: string, label: string) => void;
-  setAnswer: (key: string, value: string | string[]) => void;
-  setDimensions: (dims: Partial<BookingState["dimensions"]>) => void;
-  setComplexity: (c: BookingState["complexity"]) => void;
-  setTimeline: (t: string) => void;
-  setBudgetRange: (b: string) => void;
-  setEstimate: (e: BookingState["estimate"]) => void;
-  setEstimateLoading: (l: boolean) => void;
-  setConsultation: (date: string, time: string) => void;
-  setContact: (c: Partial<BookingState["contact"]>) => void;
+  setScope: (scope: string) => void;
+  setTimeline: (timeline: string) => void;
+  addMessage: (msg: ChatMessage) => void;
+  setChatLoading: (loading: boolean) => void;
+  setSolutionSchedule: (schedule: SolutionSchedule) => void;
+  setConversationId: (id: string) => void;
   reset: () => void;
 }
 
 const initialState = {
-  step: 1,
+  stage: 1,
+  name: "",
+  email: "",
+  phone: "",
   projectType: "",
   projectTypeLabel: "",
-  answers: {},
-  dimensions: { length: "", width: "" },
-  complexity: "" as const,
+  scope: "",
   timeline: "",
-  budgetRange: "",
-  estimate: null,
-  estimateLoading: false,
-  consultationDate: "",
-  consultationTime: "",
-  contact: {
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zip: "",
-  },
+  chatMessages: [] as ChatMessage[],
+  chatLoading: false,
+  solutionSchedule: null as SolutionSchedule | null,
+  conversationId: null as string | null,
 };
 
 export const useBookingStore = create<BookingState>((set) => ({
   ...initialState,
-  setStep: (step) => set({ step }),
-  nextStep: () => set((s) => ({ step: Math.min(s.step + 1, 6) })),
-  prevStep: () => set((s) => ({ step: Math.max(s.step - 1, 1) })),
+  setStage: (stage) => set({ stage }),
+  nextStage: () => set((s) => ({ stage: Math.min(s.stage + 1, 5) })),
+  prevStage: () => set((s) => ({ stage: Math.max(s.stage - 1, 1) })),
+  setContact: (name, email, phone) => set({ name, email, phone }),
   setProjectType: (slug, label) =>
     set({ projectType: slug, projectTypeLabel: label }),
-  setAnswer: (key, value) =>
-    set((s) => ({ answers: { ...s.answers, [key]: value } })),
-  setDimensions: (dims) =>
-    set((s) => ({ dimensions: { ...s.dimensions, ...dims } })),
-  setComplexity: (complexity) => set({ complexity }),
+  setScope: (scope) => set({ scope }),
   setTimeline: (timeline) => set({ timeline }),
-  setBudgetRange: (budgetRange) => set({ budgetRange }),
-  setEstimate: (estimate) => set({ estimate }),
-  setEstimateLoading: (estimateLoading) => set({ estimateLoading }),
-  setConsultation: (consultationDate, consultationTime) =>
-    set({ consultationDate, consultationTime }),
-  setContact: (c) => set((s) => ({ contact: { ...s.contact, ...c } })),
+  addMessage: (msg) =>
+    set((s) => ({ chatMessages: [...s.chatMessages, msg] })),
+  setChatLoading: (chatLoading) => set({ chatLoading }),
+  setSolutionSchedule: (solutionSchedule) => set({ solutionSchedule }),
+  setConversationId: (conversationId) => set({ conversationId }),
   reset: () => set(initialState),
 }));
