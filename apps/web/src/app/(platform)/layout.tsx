@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useAppUser } from "@/lib/hooks/use-app-user";
+import { ModeSelector } from "@/components/shared/mode-selector";
 
 const navItems = [
   { href: "/platform/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -31,6 +33,7 @@ export default function PlatformLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { appUser } = useAppUser();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -86,6 +89,16 @@ export default function PlatformLayout({
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto bg-[#fafafa]">
+        {appUser?.isSuperAdmin && (
+          <div className="border-b border-[#e0dbd5] bg-white px-6 py-2">
+            <div className="mx-auto flex max-w-7xl items-center justify-between">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#A39E97]">
+                Viewing as
+              </span>
+              <ModeSelector />
+            </div>
+          </div>
+        )}
         <div className="mx-auto max-w-7xl px-6 py-8">{children}</div>
       </main>
     </div>

@@ -26,6 +26,8 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import Image from "next/image";
+import { useAppUser } from "@/lib/hooks/use-app-user";
+import { ModeSelector } from "@/components/shared/mode-selector";
 
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -51,6 +53,7 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const { appUser } = useAppUser();
 
   return (
     <div className="flex h-screen bg-[#f8f8f8]">
@@ -190,12 +193,13 @@ export default function AdminLayout({
           </div>
 
           <div className="flex items-center gap-3">
+            {appUser?.isSuperAdmin && <ModeSelector />}
             <button className="relative text-[#888] hover:text-black">
               <Bell className="h-5 w-5" strokeWidth={1.5} />
               <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#C1292E]" />
             </button>
             <div className="h-7 w-7 rounded-full bg-black text-center text-xs font-bold leading-7 text-white">
-              A
+              {appUser?.firstName?.[0] || "A"}
             </div>
           </div>
         </header>

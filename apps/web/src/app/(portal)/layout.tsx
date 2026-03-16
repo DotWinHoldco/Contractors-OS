@@ -11,7 +11,6 @@ import {
   FileText,
   Menu,
   X,
-  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -21,6 +20,8 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
+import { useAppUser } from "@/lib/hooks/use-app-user";
+import { ModeSelector } from "@/components/shared/mode-selector";
 
 const navItems = [
   { label: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
@@ -37,12 +38,29 @@ export default function PortalLayout({
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { appUser } = useAppUser();
 
-  const clientName = "Sarah Johnson";
-  const clientInitials = "SJ";
+  const displayName = appUser
+    ? `${appUser.firstName} ${appUser.lastName}`.trim() || appUser.email
+    : "Guest";
+  const initials = appUser
+    ? `${appUser.firstName?.[0] || ""}${appUser.lastName?.[0] || ""}`.toUpperCase() || "U"
+    : "G";
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Super-admin mode bar */}
+      {appUser?.isSuperAdmin && (
+        <div className="border-b border-[#e0dbd5] bg-[#F9F7F5] px-4 py-2">
+          <div className="mx-auto flex max-w-7xl items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#A39E97]">
+              Viewing as
+            </span>
+            <ModeSelector />
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-[#e0dbd5] bg-white">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -81,11 +99,11 @@ export default function PortalLayout({
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-2 sm:flex">
               <span className="text-sm font-medium text-black">
-                {clientName}
+                {displayName}
               </span>
               <Avatar className="h-8 w-8 border border-[#e0dbd5]">
                 <AvatarFallback className="bg-[#e0dbd5] text-xs font-semibold text-black">
-                  {clientInitials}
+                  {initials}
                 </AvatarFallback>
               </Avatar>
             </div>
@@ -106,16 +124,15 @@ export default function PortalLayout({
               </SheetTrigger>
               <SheetContent side="right" className="w-72 p-0">
                 <div className="flex h-full flex-col">
-                  {/* Mobile Header */}
                   <div className="flex items-center justify-between border-b border-[#e0dbd5] px-4 py-4">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8 border border-[#e0dbd5]">
                         <AvatarFallback className="bg-[#e0dbd5] text-xs font-semibold text-black">
-                          {clientInitials}
+                          {initials}
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-sm font-medium text-black">
-                        {clientName}
+                        {displayName}
                       </span>
                     </div>
                     <SheetClose
@@ -127,7 +144,6 @@ export default function PortalLayout({
                     </SheetClose>
                   </div>
 
-                  {/* Mobile Nav */}
                   <nav className="flex flex-1 flex-col gap-1 p-4">
                     {navItems.map((item) => {
                       const isActive = pathname.startsWith(item.href);
@@ -148,6 +164,16 @@ export default function PortalLayout({
                       );
                     })}
                   </nav>
+
+                  {/* Mobile mode selector for superadmin */}
+                  {appUser?.isSuperAdmin && (
+                    <div className="border-t border-[#e0dbd5] p-4">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#A39E97]">
+                        Switch View
+                      </p>
+                      <ModeSelector />
+                    </div>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
