@@ -29,6 +29,7 @@ import { useAppUser } from "@/lib/hooks/use-app-user";
 import {
   useScheduleEvents,
   useCreateScheduleEvent,
+  useUpdateScheduleEvent,
   useDeleteScheduleEvent,
 } from "@/lib/hooks/use-schedule";
 
@@ -126,6 +127,7 @@ export default function SchedulingPage() {
   const { appUser } = useAppUser();
   const { data: eventsData, isLoading } = useScheduleEvents();
   const createEvent = useCreateScheduleEvent();
+  const updateEvent = useUpdateScheduleEvent();
   const deleteEvent = useDeleteScheduleEvent();
 
   const events = (eventsData ?? []) as Record<string, unknown>[];
@@ -178,8 +180,20 @@ export default function SchedulingPage() {
     return `${cell.year}-${m}-${d}`;
   };
 
+  // Get local timezone offset string like "-05:00"
+  const getTzOffset = () => {
+    const offset = new Date().getTimezoneOffset();
+    const sign = offset <= 0 ? "+" : "-";
+    const hrs = String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0");
+    const mins = String(Math.abs(offset) % 60).padStart(2, "0");
+    return `${sign}${hrs}:${mins}`;
+  };
+
+  const [editingEvent, setEditingEvent] = useState<Record<string, unknown> | null>(null);
+
   const openAddDialog = () => {
     const today = new Date().toISOString().split("T")[0];
+    setEditingEvent(null);
     setNewTitle("");
     setNewEventType("job_work");
     setNewDate(today);
@@ -188,22 +202,58 @@ export default function SchedulingPage() {
     setDialogOpen(true);
   };
 
-  const handleCreateEvent = () => {
+  const openEditDialog = (eventId: string) => {
+    const ev = events.find((e) => String(e.id) === eventId);
+    if (!ev) return;
+    setEditingEvent(ev);
+    setNewTitle(String(ev.title || ""));
+    setNewEventType(String(ev.event_type || "job_work"));
+    const start = ev.start_time ? new Date(ev.start_time as string) : new Date();
+    const end = ev.end_time ? new Date(ev.end_time as string) : new Date();
+    setNewDate(start.toLocaleDateString("en-CA")); // YYYY-MM-DD in local time
+    setNewStartTime(start.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+    setNewEndTime(end.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+    setDialogOpen(true);
+  };
+
+  const handleSaveEvent = () => {
     const dateStr = newDate || new Date().toISOString().split("T")[0];
-    const startTime = `${dateStr}T${newStartTime}:00`;
-    const endTime = `${dateStr}T${newEndTime}:00`;
-    createEvent.mutate(
-      {
-        title: newTitle || "Untitled Event",
-        event_type: newEventType,
-        start_time: startTime,
-        end_time: endTime,
-        tenant_id: appUser?.tenantId,
-      },
-      {
-        onSuccess: () => setDialogOpen(false),
-      }
-    );
+    const tz = getTzOffset();
+    const startTime = `${dateStr}T${newStartTime}:00${tz}`;
+    const endTime = `${dateStr}T${newEndTime}:00${tz}`;
+
+    if (editingEvent) {
+      updateEvent.mutate(
+        {
+          id: String(editingEvent.id),
+          title: newTitle || "Untitled Event",
+          event_type: newEventType,
+          start_time: startTime,
+          end_time: endTime,
+        },
+        { onSuccess: () => { setDialogOpen(false); setEditingEvent(null); } }
+      );
+    } else {
+      createEvent.mutate(
+        {
+          title: newTitle || "Untitled Event",
+          event_type: newEventType,
+          start_time: startTime,
+          end_time: endTime,
+          tenant_id: appUser?.tenantId,
+        },
+        { onSuccess: () => setDialogOpen(false) }
+      );
+    }
+  };
+
+  const handleDeleteEvent = () => {
+    if (!editingEvent) return;
+    if (confirm("Delete this event?")) {
+      deleteEvent.mutate(String(editingEvent.id));
+      setDialogOpen(false);
+      setEditingEvent(null);
+    }
   };
 
   if (isLoading) {
@@ -241,11 +291,11 @@ export default function SchedulingPage() {
         </Button>
       </div>
 
-      {/* Add Event Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Add/Edit Event Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingEvent(null); }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Add Event</DialogTitle>
+            <DialogTitle>{editingEvent ? "Edit Event" : "Add Event"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -302,20 +352,28 @@ export default function SchedulingPage() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="bg-black text-white hover:bg-black/90"
-              onClick={handleCreateEvent}
-              disabled={createEvent.isPending}
-            >
-              {createEvent.isPending ? "Creating..." : "Create Event"}
-            </Button>
+          <DialogFooter className="flex justify-between">
+            <div>
+              {editingEvent && (
+                <Button variant="destructive" size="sm" onClick={handleDeleteEvent}>
+                  Delete
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setDialogOpen(false); setEditingEvent(null); }}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-black text-white hover:bg-black/90"
+                onClick={handleSaveEvent}
+                disabled={createEvent.isPending || updateEvent.isPending}
+              >
+                {editingEvent
+                  ? updateEvent.isPending ? "Saving..." : "Save Changes"
+                  : createEvent.isPending ? "Creating..." : "Create Event"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -427,9 +485,10 @@ export default function SchedulingPage() {
                   {dayEvents.slice(0, 3).map((ev) => {
                     const colors = EVENT_COLORS[ev.type] ?? EVENT_COLORS.job_work;
                     return (
-                      <div
+                      <button
                         key={ev.id}
-                        className={`group relative rounded px-1 py-0.5 ${colors.bg}`}
+                        onClick={() => openEditDialog(ev.id)}
+                        className={`w-full rounded px-1 py-0.5 text-left transition-opacity hover:opacity-80 ${colors.bg}`}
                       >
                         <p
                           className={`truncate text-[10px] font-medium ${colors.text}`}
@@ -441,14 +500,7 @@ export default function SchedulingPage() {
                           ) : null}
                           {ev.title}
                         </p>
-                        <button
-                          onClick={() => deleteEvent.mutate(ev.id)}
-                          className="absolute right-0.5 top-0.5 hidden text-[10px] text-red-400 hover:text-red-600 group-hover:block"
-                          title="Delete event"
-                        >
-                          &times;
-                        </button>
-                      </div>
+                      </button>
                     );
                   })}
                   {dayEvents.length > 3 && (
