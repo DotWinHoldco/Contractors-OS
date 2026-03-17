@@ -33,6 +33,7 @@ import { useProjectPhases, useCreateProjectPhase, useUpdatePhaseStatus, useDelet
 import { useTasks, useCreateTask, useToggleTaskComplete, useDeleteTask } from "@/lib/hooks/use-tasks";
 import { useDailyLogs, useCreateDailyLog } from "@/lib/hooks/use-daily-logs";
 import { useProjectPhotos } from "@/lib/hooks/use-project-photos";
+import { useAppUser } from "@/lib/hooks/use-app-user";
 import { toast } from "sonner";
 
 const tabs = [
@@ -71,6 +72,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [newTaskDue, setNewTaskDue] = useState("");
   const [newLogNote, setNewLogNote] = useState("");
 
+  const { appUser } = useAppUser();
   const { data: project, isLoading: projectLoading } = useProject(id);
   const { data: phases, isLoading: phasesLoading } = useProjectPhases(id);
   const { data: tasks } = useTasks(id);
@@ -269,7 +271,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     />
                     <div className="flex-1">
                       <p className={`text-sm ${task.status === "completed" ? "text-[#888] line-through" : "text-black"}`}>
-                        {task.name as string}
+                        {task.title as string}
                       </p>
                       {task.due_date ? <p className="text-xs text-[#888]">Due: {String(task.due_date)}</p> : null}
                     </div>
@@ -377,6 +379,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <Button disabled={!newPhaseName.trim()} onClick={() => {
                 createPhase.mutate({
                   project_id: id,
+                  tenant_id: appUser?.tenantId,
                   name: newPhaseName,
                   description: newPhaseDesc || null,
                   phase_order: (phases?.length || 0) + 1,
@@ -400,7 +403,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setAddTaskOpen(false)}>Cancel</Button>
               <Button disabled={!newTaskName.trim()} onClick={() => {
-                createTask.mutate({ project_id: id, name: newTaskName, due_date: newTaskDue || null, status: "pending" } as never);
+                createTask.mutate({ project_id: id, title: newTaskName, due_date: newTaskDue || null, status: "pending", tenant_id: appUser?.tenantId } as never);
                 setNewTaskName(""); setNewTaskDue(""); setAddTaskOpen(false);
               }}>Add Task</Button>
             </div>
@@ -417,7 +420,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setAddLogOpen(false)}>Cancel</Button>
               <Button disabled={!newLogNote.trim()} onClick={() => {
-                createLog.mutate({ project_id: id, description: newLogNote, log_date: new Date().toISOString().split("T")[0] } as never);
+                createLog.mutate({ project_id: id, tenant_id: appUser?.tenantId, description: newLogNote, log_date: new Date().toISOString().split("T")[0] } as never);
                 setNewLogNote(""); setAddLogOpen(false);
               }}>Add Log</Button>
             </div>

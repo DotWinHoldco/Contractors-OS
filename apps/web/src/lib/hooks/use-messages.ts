@@ -46,14 +46,12 @@ export function useSendMessage() {
     mutationFn: async (message: {
       thread_id: string;
       sender_id: string;
-      content: string;
+      body: string;
+      sender_type?: string;
     }) => {
-      // Map content to body for the DB column
-      const { content, ...rest } = message;
-      const dbMessage = { ...rest, body: content };
       const { data, error } = await supabase
         .from("messages")
-        .insert(dbMessage as never)
+        .insert(message as never)
         .select()
         .single();
       if (error) throw error;

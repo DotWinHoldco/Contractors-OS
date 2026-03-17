@@ -15,20 +15,20 @@ import {
   useDeleteScheduleEvent,
 } from "@/lib/hooks/use-schedule";
 
-type EventType = "consultation" | "site_visit" | "inspection" | "work_day";
+type EventType = "consultation" | "site_visit" | "inspection" | "job_work";
 
 const EVENT_COLORS: Record<EventType, { bg: string; text: string; dot: string }> = {
   consultation: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500" },
   site_visit: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
   inspection: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500" },
-  work_day: { bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500" },
+  job_work: { bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500" },
 };
 
 const EVENT_LABELS: Record<EventType, string> = {
   consultation: "Consultation",
   site_visit: "Site Visit",
   inspection: "Inspection",
-  work_day: "Work Day",
+  job_work: "Job Work",
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -123,7 +123,7 @@ export default function SchedulingPage() {
       if (!dateStr) continue;
 
       const title = String(ev.title ?? "");
-      const type = (String(ev.event_type ?? "work_day")) as EventType;
+      const type = (String(ev.event_type ?? "job_work")) as EventType;
       const timeStr = startTime.includes("T")
         ? new Date(startTime).toLocaleTimeString("en-US", {
             hour: "numeric",
@@ -147,7 +147,7 @@ export default function SchedulingPage() {
     const startTime = new Date().toISOString();
     createEvent.mutate({
       title: "New Event",
-      event_type: "work_day",
+      event_type: "job_work",
       start_time: startTime,
       end_time: startTime,
     });
@@ -294,7 +294,7 @@ export default function SchedulingPage() {
                 </div>
                 <div className="space-y-0.5">
                   {dayEvents.slice(0, 3).map((ev) => {
-                    const colors = EVENT_COLORS[ev.type] ?? EVENT_COLORS.work_day;
+                    const colors = EVENT_COLORS[ev.type] ?? EVENT_COLORS.job_work;
                     return (
                       <div
                         key={ev.id}

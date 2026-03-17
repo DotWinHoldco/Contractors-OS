@@ -7,46 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, ArrowLeft, Star } from "lucide-react";
+import { Plus, Search, ArrowLeft } from "lucide-react";
 import {
   useSubcontractors,
   useCreateSubcontractor,
   useDeleteSubcontractor,
 } from "@/lib/hooks/use-employees";
-
-const insuranceBadgeStyle = (status: string) => {
-  const styles: Record<string, string> = {
-    valid: "bg-green-50 text-green-700",
-    expired: "bg-red-50 text-red-700",
-    pending: "bg-amber-50 text-amber-700",
-  };
-  return styles[status] ?? "bg-gray-100 text-gray-700";
-};
-
-const w9BadgeStyle = (status: string) => {
-  const styles: Record<string, string> = {
-    received: "bg-green-50 text-green-700",
-    pending: "bg-amber-50 text-amber-700",
-    missing: "bg-red-50 text-red-700",
-  };
-  return styles[status] ?? "bg-gray-100 text-gray-700";
-};
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star
-          key={i}
-          className={`h-3.5 w-3.5 ${
-            i < rating ? "fill-amber-400 text-amber-400" : "text-gray-200"
-          }`}
-          strokeWidth={1.5}
-        />
-      ))}
-    </div>
-  );
-}
 
 export default function SubcontractorsPage() {
   const [search, setSearch] = useState("");
@@ -59,15 +25,15 @@ export default function SubcontractorsPage() {
 
   const filtered = subs.filter((s) => {
     const company = String(s.company_name ?? "");
-    const trade = String(s.trade ?? "");
+    const trades = Array.isArray(s.trade_categories) ? (s.trade_categories as string[]).join(" ") : "";
     return (
       company.toLowerCase().includes(search.toLowerCase()) ||
-      trade.toLowerCase().includes(search.toLowerCase())
+      trades.toLowerCase().includes(search.toLowerCase())
     );
   });
 
   const handleAdd = () => {
-    createSub.mutate({ company_name: "New Subcontractor", trade: "" });
+    createSub.mutate({ company_name: "New Subcontractor", trade_categories: [] });
   };
 
   if (isLoading) {
@@ -138,16 +104,13 @@ export default function SubcontractorsPage() {
                   Company
                 </th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Trade
+                  Trades
                 </th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Insurance
+                  Insurance Expiry
                 </th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  W9
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Rating
+                  W9 On File
                 </th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
                   Actions
@@ -162,10 +125,9 @@ export default function SubcontractorsPage() {
                   ? String(sub.contact_name)
                   : null;
                 const phone = sub.phone ? String(sub.phone) : null;
-                const trade = sub.trade ? String(sub.trade) : "";
-                const insurance = String(sub.insurance_status ?? "");
-                const w9 = String(sub.w9_status ?? "");
-                const rating = Number(sub.rating) || 0;
+                const trades = Array.isArray(sub.trade_categories) ? (sub.trade_categories as string[]).join(", ") : "";
+                const insuranceExpiry = sub.insurance_expiry_date ? String(sub.insurance_expiry_date) : "";
+                const w9OnFile = sub.w9_on_file as boolean | null;
 
                 return (
                   <tr key={id} className="hover:bg-[#f8f8f8]">
@@ -180,34 +142,18 @@ export default function SubcontractorsPage() {
                         </p>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[#555]">{trade}</td>
-                    <td className="px-4 py-3">
-                      {insurance ? (
-                        <Badge
-                          variant="secondary"
-                          className={`text-[10px] ${insuranceBadgeStyle(insurance)}`}
-                        >
-                          {insurance}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-[#888]">—</span>
-                      )}
+                    <td className="px-4 py-3 text-sm text-[#555]">{trades || "—"}</td>
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      {insuranceExpiry ? new Date(insuranceExpiry).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      {w9 ? (
+                      {w9OnFile != null ? (
                         <Badge
                           variant="secondary"
-                          className={`text-[10px] ${w9BadgeStyle(w9)}`}
+                          className={`text-[10px] ${w9OnFile ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}
                         >
-                          {w9}
+                          {w9OnFile ? "Yes" : "No"}
                         </Badge>
-                      ) : (
-                        <span className="text-xs text-[#888]">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {rating > 0 ? (
-                        <StarRating rating={rating} />
                       ) : (
                         <span className="text-xs text-[#888]">—</span>
                       )}
@@ -226,7 +172,7 @@ export default function SubcontractorsPage() {
               {filtered.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={5}
                     className="px-4 py-8 text-center text-sm text-[#888]"
                   >
                     No subcontractors found.

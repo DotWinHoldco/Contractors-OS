@@ -6,28 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, ArrowLeft, Star } from "lucide-react";
+import { Plus, Search, ArrowLeft } from "lucide-react";
 import {
   useVendors,
   useCreateVendor,
   useDeleteVendor,
 } from "@/lib/hooks/use-employees";
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star
-          key={i}
-          className={`h-3.5 w-3.5 ${
-            i < rating ? "fill-amber-400 text-amber-400" : "text-gray-200"
-          }`}
-          strokeWidth={1.5}
-        />
-      ))}
-    </div>
-  );
-}
 
 export default function VendorsPage() {
   const [search, setSearch] = useState("");
@@ -40,15 +24,15 @@ export default function VendorsPage() {
 
   const filtered = vendors.filter((v) => {
     const company = String(v.company_name ?? "");
-    const category = String(v.category ?? "");
+    const contact = String(v.contact_name ?? "");
     return (
       company.toLowerCase().includes(search.toLowerCase()) ||
-      category.toLowerCase().includes(search.toLowerCase())
+      contact.toLowerCase().includes(search.toLowerCase())
     );
   });
 
   const handleAdd = () => {
-    createVendor.mutate({ company_name: "New Vendor", category: "" });
+    createVendor.mutate({ company_name: "New Vendor" });
   };
 
   if (isLoading) {
@@ -119,16 +103,13 @@ export default function VendorsPage() {
                   Company
                 </th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Category
-                </th>
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
                   Contact
                 </th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Phone
+                  Email
                 </th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
-                  Rating
+                  Phone
                 </th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#888]">
                   Actions
@@ -140,14 +121,10 @@ export default function VendorsPage() {
                 const id = String(vendor.id);
                 const company = String(vendor.company_name ?? "");
                 const email = vendor.email ? String(vendor.email) : null;
-                const category = vendor.category
-                  ? String(vendor.category)
-                  : "";
                 const contact = vendor.contact_name
                   ? String(vendor.contact_name)
                   : "";
                 const phone = vendor.phone ? String(vendor.phone) : "";
-                const rating = Number(vendor.rating) || 0;
 
                 return (
                   <tr key={id} className="hover:bg-[#f8f8f8]">
@@ -155,24 +132,14 @@ export default function VendorsPage() {
                       <p className="text-sm font-medium text-black">
                         {company}
                       </p>
-                      {email ? (
-                        <p className="text-xs text-[#888]">{email}</p>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-[#555]">
-                      {category}
                     </td>
                     <td className="px-4 py-3 text-sm text-[#555]">
                       {contact}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[#555]">{phone}</td>
-                    <td className="px-4 py-3">
-                      {rating > 0 ? (
-                        <StarRating rating={rating} />
-                      ) : (
-                        <span className="text-xs text-[#888]">—</span>
-                      )}
+                    <td className="px-4 py-3 text-sm text-[#555]">
+                      {email || "—"}
                     </td>
+                    <td className="px-4 py-3 text-sm text-[#555]">{phone || "—"}</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => deleteVendor.mutate(id)}
@@ -187,7 +154,7 @@ export default function VendorsPage() {
               {filtered.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={5}
                     className="px-4 py-8 text-center text-sm text-[#888]"
                   >
                     No vendors found.

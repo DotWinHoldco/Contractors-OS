@@ -153,7 +153,7 @@ export default function PortalProjectDetailPage({ params }: { params: Promise<{ 
                     <li key={task.id as string} className="flex items-start gap-3 border-b border-[#e0dbd5] pb-3 last:border-0">
                       <Checkbox checked={task.status === "completed"} onCheckedChange={(checked) => toggleTask.mutate({ id: task.id as string, completed: !!checked })} className="mt-0.5" />
                       <div className="flex-1">
-                        <p className={`text-sm ${task.status === "completed" ? "text-[#888] line-through" : "text-black"}`}>{String(task.name)}</p>
+                        <p className={`text-sm ${task.status === "completed" ? "text-[#888] line-through" : "text-black"}`}>{String(task.title)}</p>
                         {task.due_date ? <span className="text-xs text-[#888]">Due: {String(task.due_date)}</span> : null}
                       </div>
                       <Button size="sm" variant="ghost" className="h-7 text-red-500" onClick={() => { if (confirm("Delete task?")) deleteTask.mutate(task.id as string); }}>
@@ -240,7 +240,7 @@ export default function PortalProjectDetailPage({ params }: { params: Promise<{ 
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setAddTaskOpen(false)}>Cancel</Button>
               <Button disabled={!newTaskName.trim()} onClick={() => {
-                createTask.mutate({ project_id: id, name: newTaskName, due_date: newTaskDate || null, status: "pending", created_by_client: true } as never);
+                createTask.mutate({ project_id: id, title: newTaskName, due_date: newTaskDate || null, status: "pending", created_by_client: true } as never);
                 setNewTaskName(""); setNewTaskDate(""); setAddTaskOpen(false);
               }}>Add Task</Button>
             </div>

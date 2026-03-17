@@ -47,9 +47,18 @@ export function useCreateInvoice() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (invoice: Record<string, unknown>) => {
+      // Generate invoice_number via sequence RPC
+      const tenantId = invoice.tenant_id as string;
+      if (!tenantId) throw new Error("tenant_id is required to create an invoice");
+      const { data: seqNum, error: seqError } = await supabase.rpc("next_sequence", {
+        p_tenant_id: tenantId,
+        p_sequence_name: "invoice",
+      });
+      if (seqError) throw seqError;
+      const invoiceNumber = `INV-${String(seqNum).padStart(5, "0")}`;
       const { data, error } = await supabase
         .from("invoices")
-        .insert(invoice as never)
+        .insert({ ...invoice, invoice_number: invoiceNumber } as never)
         .select()
         .single();
       if (error) throw error;

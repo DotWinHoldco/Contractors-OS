@@ -217,7 +217,7 @@ export default function ProjectsPage() {
                 disabled={!newName.trim() || !newClientId || createProject.isPending}
                 onClick={() => {
                   createProject.mutate(
-                    { name: newName, client_id: newClientId, tenant_id: appUser?.tenantId, status: "planning" } as never,
+                    { name: newName, client_id: newClientId, tenant_id: appUser?.tenantId, status: "inquiry" } as never,
                     {
                       onSuccess: (data: Record<string, unknown>) => {
                         setCreateOpen(false);

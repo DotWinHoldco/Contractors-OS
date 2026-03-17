@@ -47,7 +47,8 @@ export default function PortalMessagesPage() {
     sendMutation.mutate({
       thread_id: selectedThread,
       sender_id: userId,
-      content: trimmed,
+      body: trimmed,
+      sender_type: "client",
     });
     setInputValue("");
   }, [inputValue, selectedThread, userId, sendMutation]);

@@ -29,7 +29,7 @@ export default function EmployeesPage() {
   });
 
   const handleAdd = () => {
-    createEmployee.mutate({ first_name: "New", last_name: "Employee", status: "active" });
+    createEmployee.mutate({ first_name: "New", last_name: "Employee", employment_status: "active" });
   };
 
   if (isLoading) {
@@ -123,7 +123,7 @@ export default function EmployeesPage() {
                   `${String(emp.first_name ?? "")} ${String(emp.last_name ?? "")}`.trim();
                 const email = emp.email ? String(emp.email) : null;
                 const role = emp.role ? String(emp.role) : "";
-                const status = String(emp.status ?? "active");
+                const status = String(emp.employment_status ?? "active");
                 const phone = emp.phone ? String(emp.phone) : "";
                 const hireDate = emp.hire_date
                   ? new Date(String(emp.hire_date)).toLocaleDateString(
