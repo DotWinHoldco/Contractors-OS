@@ -347,13 +347,51 @@ export default function SchedulingPage() {
     }
   };
 
-  const handleDeleteEvent = () => {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAllFuture, setDeleteAllFuture] = useState(false);
+
+  const handleDeleteIntent = () => {
     if (!editingEvent) return;
-    if (confirm("Delete this event?")) {
-      deleteEvent.mutate(String(editingEvent.id));
-      setDialogOpen(false);
-      setEditingEvent(null);
+    if (editingEvent.is_recurring) {
+      // Show delete options dialog
+      setDeleteAllFuture(false);
+      setDeleteDialogOpen(true);
+    } else {
+      // Non-recurring: just confirm
+      if (confirm("Delete this event?")) {
+        deleteEvent.mutate(String(editingEvent.id));
+        setDialogOpen(false);
+        setEditingEvent(null);
+      }
     }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!editingEvent) return;
+    const eventId = String(editingEvent.id);
+
+    if (deleteAllFuture) {
+      // Delete this event entirely (which removes all future occurrences since they're virtual)
+      deleteEvent.mutate(eventId);
+    } else {
+      // "Delete just this occurrence" — set recurrence_end_date to the day before
+      // this occurrence so future ones still show, but this specific date is excluded.
+      // Since occurrences are virtual, the simplest approach: set the end date to
+      // cut off at this event's date, effectively ending the recurrence.
+      // For a true "skip this one" we'd need an exceptions table — for now,
+      // ending the recurrence at the viewed date is the pragmatic approach.
+      const evStart = new Date(editingEvent.start_time as string);
+      const yesterday = new Date(evStart);
+      yesterday.setDate(yesterday.getDate() - 1);
+      updateEvent.mutate({
+        id: eventId,
+        recurrence_end_date: yesterday.toISOString().split("T")[0],
+      });
+    }
+
+    setDeleteDialogOpen(false);
+    setDialogOpen(false);
+    setEditingEvent(null);
   };
 
   if (isLoading) {
@@ -513,7 +551,7 @@ export default function SchedulingPage() {
           <DialogFooter className="flex justify-between">
             <div>
               {editingEvent && (
-                <Button variant="destructive" size="sm" onClick={handleDeleteEvent}>
+                <Button variant="destructive" size="sm" onClick={handleDeleteIntent}>
                   Delete
                 </Button>
               )}
@@ -532,6 +570,56 @@ export default function SchedulingPage() {
                   : createEvent.isPending ? "Creating..." : "Create Event"}
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Recurring Event Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete Recurring Event</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-[#555]">
+              This is a repeating event. What would you like to do?
+            </p>
+            <div className="mt-4 space-y-3">
+              <label className="flex items-start gap-3 rounded-md border border-[#e0dbd5] p-3 cursor-pointer hover:bg-[#f8f8f8]">
+                <input
+                  type="radio"
+                  name="delete-scope"
+                  checked={!deleteAllFuture}
+                  onChange={() => setDeleteAllFuture(false)}
+                  className="mt-0.5"
+                />
+                <div>
+                  <p className="text-sm font-medium text-black">Delete this and future events</p>
+                  <p className="text-xs text-[#888]">Stops the recurrence from this date onward</p>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 rounded-md border border-[#e0dbd5] p-3 cursor-pointer hover:bg-[#f8f8f8]">
+                <input
+                  type="radio"
+                  name="delete-scope"
+                  checked={deleteAllFuture}
+                  onChange={() => setDeleteAllFuture(true)}
+                  className="mt-0.5"
+                />
+                <div>
+                  <p className="text-sm font-medium text-black">Delete all events</p>
+                  <p className="text-xs text-[#888]">Removes the event and all its occurrences entirely</p>
+                </div>
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
