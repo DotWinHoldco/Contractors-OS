@@ -55,10 +55,9 @@ export function useCreateInvoice() {
         p_sequence_name: "invoice",
       });
       if (seqError) throw seqError;
-      const invoiceNumber = `INV-${String(seqNum).padStart(5, "0")}`;
       const { data, error } = await supabase
         .from("invoices")
-        .insert({ ...invoice, invoice_number: invoiceNumber } as never)
+        .insert({ ...invoice, invoice_number: seqNum } as never)
         .select()
         .single();
       if (error) throw error;
