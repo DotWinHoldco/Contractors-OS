@@ -123,6 +123,11 @@ export default function SchedulingPage() {
   const [newDate, setNewDate] = useState("");
   const [newStartTime, setNewStartTime] = useState("09:00");
   const [newEndTime, setNewEndTime] = useState("10:00");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrencePattern, setRecurrencePattern] = useState("weekly");
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceCycles, setRecurrenceCycles] = useState<number | "infinite">("infinite");
+  const [draggedEventId, setDraggedEventId] = useState<string | null>(null);
 
   const { appUser } = useAppUser();
   const { data: eventsData, isLoading } = useScheduleEvents();
@@ -153,14 +158,17 @@ export default function SchedulingPage() {
   };
 
   const eventsByDate = useMemo(() => {
-    const map: Record<string, { id: string; title: string; type: EventType; time: string }[]> = {};
+    const map: Record<string, { id: string; title: string; type: EventType; time: string; recurring: boolean }[]> = {};
     for (const ev of events) {
       const startTime = String(ev.start_time ?? "");
-      const dateStr = startTime.split("T")[0];
+      if (!startTime) continue;
+      // Use local date string to match calendar cells
+      const dateStr = new Date(startTime).toLocaleDateString("en-CA");
       if (!dateStr) continue;
 
       const title = String(ev.title ?? "");
       const type = (String(ev.event_type ?? "job_work")) as EventType;
+      const recurring = !!ev.is_recurring;
       const timeStr = startTime.includes("T")
         ? new Date(startTime).toLocaleTimeString("en-US", {
             hour: "numeric",
@@ -169,7 +177,7 @@ export default function SchedulingPage() {
         : "";
 
       if (!map[dateStr]) map[dateStr] = [];
-      map[dateStr].push({ id: String(ev.id), title, type, time: timeStr });
+      map[dateStr].push({ id: String(ev.id), title, type, time: timeStr, recurring });
     }
     return map;
   }, [events]);
@@ -199,6 +207,10 @@ export default function SchedulingPage() {
     setNewDate(today);
     setNewStartTime("09:00");
     setNewEndTime("10:00");
+    setIsRecurring(false);
+    setRecurrencePattern("weekly");
+    setRecurrenceInterval(1);
+    setRecurrenceCycles("infinite");
     setDialogOpen(true);
   };
 
@@ -210,10 +222,37 @@ export default function SchedulingPage() {
     setNewEventType(String(ev.event_type || "job_work"));
     const start = ev.start_time ? new Date(ev.start_time as string) : new Date();
     const end = ev.end_time ? new Date(ev.end_time as string) : new Date();
-    setNewDate(start.toLocaleDateString("en-CA")); // YYYY-MM-DD in local time
+    setNewDate(start.toLocaleDateString("en-CA"));
     setNewStartTime(start.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
     setNewEndTime(end.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+    setIsRecurring(!!ev.is_recurring);
+    setRecurrencePattern(String(ev.recurrence_pattern || "weekly"));
+    setRecurrenceInterval(Number(ev.recurrence_interval) || 1);
+    setRecurrenceCycles(ev.recurrence_end_date ? 10 : "infinite");
     setDialogOpen(true);
+  };
+
+  const handleDrop = (targetDate: string) => {
+    if (!draggedEventId) return;
+    const ev = events.find((e) => String(e.id) === draggedEventId);
+    if (!ev) return;
+
+    const oldStart = new Date(ev.start_time as string);
+    const oldEnd = new Date(ev.end_time as string);
+    const duration = oldEnd.getTime() - oldStart.getTime();
+
+    // Build new start at same time but on the target date
+    const [y, m, d] = targetDate.split("-").map(Number);
+    const newStart = new Date(oldStart);
+    newStart.setFullYear(y, m - 1, d);
+    const newEnd = new Date(newStart.getTime() + duration);
+
+    updateEvent.mutate({
+      id: draggedEventId,
+      start_time: newStart.toISOString(),
+      end_time: newEnd.toISOString(),
+    });
+    setDraggedEventId(null);
   };
 
   const handleSaveEvent = () => {
@@ -221,6 +260,28 @@ export default function SchedulingPage() {
     const tz = getTzOffset();
     const startTime = `${dateStr}T${newStartTime}:00${tz}`;
     const endTime = `${dateStr}T${newEndTime}:00${tz}`;
+
+    // Calculate recurrence end date based on cycles
+    let recurrenceEndDate: string | null = null;
+    if (isRecurring && recurrenceCycles !== "infinite") {
+      const endD = new Date(dateStr);
+      const multiplier = recurrencePattern === "daily" ? 1 : recurrencePattern === "weekly" || recurrencePattern === "biweekly" ? 7 : recurrencePattern === "monthly" ? 30 : recurrencePattern === "quarterly" ? 90 : recurrencePattern === "annual" ? 365 : 7;
+      const factor = recurrencePattern === "biweekly" ? 2 : 1;
+      endD.setDate(endD.getDate() + multiplier * factor * recurrenceInterval * (recurrenceCycles as number));
+      recurrenceEndDate = endD.toISOString().split("T")[0];
+    }
+
+    const recurrenceFields = isRecurring ? {
+      is_recurring: true,
+      recurrence_pattern: recurrencePattern,
+      recurrence_interval: recurrenceInterval,
+      recurrence_end_date: recurrenceEndDate,
+    } : {
+      is_recurring: false,
+      recurrence_pattern: "none",
+      recurrence_interval: null,
+      recurrence_end_date: null,
+    };
 
     if (editingEvent) {
       updateEvent.mutate(
@@ -230,6 +291,7 @@ export default function SchedulingPage() {
           event_type: newEventType,
           start_time: startTime,
           end_time: endTime,
+          ...recurrenceFields,
         },
         { onSuccess: () => { setDialogOpen(false); setEditingEvent(null); } }
       );
@@ -241,6 +303,7 @@ export default function SchedulingPage() {
           start_time: startTime,
           end_time: endTime,
           tenant_id: appUser?.tenantId,
+          ...recurrenceFields,
         },
         { onSuccess: () => setDialogOpen(false) }
       );
@@ -350,6 +413,64 @@ export default function SchedulingPage() {
                   onChange={(e) => setNewEndTime(e.target.value)}
                 />
               </div>
+            </div>
+            {/* Recurrence */}
+            <div className="space-y-3 rounded-md border border-[#e0dbd5] p-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is-recurring"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="h-4 w-4 rounded border-[#e0dbd5]"
+                />
+                <Label htmlFor="is-recurring" className="text-sm font-medium">Repeating Event</Label>
+              </div>
+              {isRecurring && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-[#888]">Every</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={recurrenceInterval}
+                      onChange={(e) => setRecurrenceInterval(Number(e.target.value) || 1)}
+                      className="w-16 text-center"
+                    />
+                    <select
+                      value={recurrencePattern}
+                      onChange={(e) => setRecurrencePattern(e.target.value)}
+                      className="rounded-md border border-[#e0dbd5] bg-white px-2 py-1.5 text-sm"
+                    >
+                      <option value="daily">day(s)</option>
+                      <option value="weekly">week(s)</option>
+                      <option value="biweekly">2 weeks</option>
+                      <option value="monthly">month(s)</option>
+                      <option value="quarterly">quarter(s)</option>
+                      <option value="annual">year(s)</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-[#888]">Repeats for</span>
+                    <select
+                      value={recurrenceCycles === "infinite" ? "infinite" : String(recurrenceCycles)}
+                      onChange={(e) => setRecurrenceCycles(e.target.value === "infinite" ? "infinite" : Number(e.target.value))}
+                      className="rounded-md border border-[#e0dbd5] bg-white px-2 py-1.5 text-sm"
+                    >
+                      <option value="infinite">Forever</option>
+                      <option value="2">2 cycles</option>
+                      <option value="4">4 cycles</option>
+                      <option value="6">6 cycles</option>
+                      <option value="8">8 cycles</option>
+                      <option value="10">10 cycles</option>
+                      <option value="12">12 cycles</option>
+                      <option value="24">24 cycles</option>
+                      <option value="52">52 cycles</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter className="flex justify-between">
@@ -464,7 +585,10 @@ export default function SchedulingPage() {
             return (
               <div
                 key={idx}
-                className={`min-h-[100px] border-b border-r border-[#e0dbd5] p-1.5 ${
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("bg-[#D4A84B]/10"); }}
+                onDragLeave={(e) => { e.currentTarget.classList.remove("bg-[#D4A84B]/10"); }}
+                onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("bg-[#D4A84B]/10"); handleDrop(dateStr); }}
+                className={`min-h-[100px] border-b border-r border-[#e0dbd5] p-1.5 transition-colors ${
                   !cell.isCurrentMonth ? "bg-[#fafaf8]" : ""
                 } ${idx % 7 === 6 ? "border-r-0" : ""}`}
               >
@@ -487,8 +611,11 @@ export default function SchedulingPage() {
                     return (
                       <button
                         key={ev.id}
+                        draggable
+                        onDragStart={() => setDraggedEventId(ev.id)}
+                        onDragEnd={() => setDraggedEventId(null)}
                         onClick={() => openEditDialog(ev.id)}
-                        className={`w-full rounded px-1 py-0.5 text-left transition-opacity hover:opacity-80 ${colors.bg}`}
+                        className={`w-full cursor-grab rounded px-1 py-0.5 text-left transition-opacity hover:opacity-80 active:cursor-grabbing ${colors.bg}`}
                       >
                         <p
                           className={`truncate text-[10px] font-medium ${colors.text}`}
@@ -499,6 +626,7 @@ export default function SchedulingPage() {
                             </span>
                           ) : null}
                           {ev.title}
+                          {ev.recurring && <span className="ml-0.5 opacity-60">🔁</span>}
                         </p>
                       </button>
                     );
