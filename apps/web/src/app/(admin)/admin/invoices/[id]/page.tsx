@@ -44,10 +44,11 @@ export default function InvoiceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const isNew = id === "new";
 
-  const { data: invoice, isLoading: invoiceLoading } = useInvoice(id);
+  const { data: invoice, isLoading: invoiceLoading } = useInvoice(isNew ? "" : id);
   const { data: lineItemsData, isLoading: lineItemsLoading } =
-    useInvoiceLineItems(id);
+    useInvoiceLineItems(isNew ? "" : id);
   const updateInvoice = useUpdateInvoice();
   const createLineItem = useCreateInvoiceLineItem();
   const updateLineItem = useUpdateInvoiceLineItem();

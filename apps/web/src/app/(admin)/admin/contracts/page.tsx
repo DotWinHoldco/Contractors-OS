@@ -2,13 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Plus, Search, FileText } from "lucide-react";
-import { useContracts } from "@/lib/hooks/use-contracts";
+import { useContracts, useCreateContract } from "@/lib/hooks/use-contracts";
+import { useClients } from "@/lib/hooks/use-clients";
+import { useAppUser } from "@/lib/hooks/use-app-user";
 
 type ContractStatus = "draft" | "sent" | "signed" | "executed";
 
@@ -41,8 +46,16 @@ function formatDate(dateStr: string | null): string {
 }
 
 export default function ContractsPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ContractStatus | "all">("all");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newClientId, setNewClientId] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newContractType, setNewContractType] = useState("");
+  const { appUser } = useAppUser();
+  const createContract = useCreateContract();
+  const { data: clients } = useClients();
   const { data: contracts, isLoading } = useContracts();
 
   const rows = (contracts ?? []) as Record<string, unknown>[];
@@ -77,6 +90,7 @@ export default function ContractsPage() {
         <Button
           size="sm"
           className="bg-black text-xs text-white hover:bg-black/90"
+          onClick={() => setCreateOpen(true)}
         >
           <Plus className="mr-1 h-3 w-3" />
           New Contract
@@ -199,6 +213,58 @@ export default function ContractsPage() {
           </table>
         </div>
       </Card>
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>New Contract</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Title *</Label>
+              <Input placeholder="Contract title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="mt-1" autoFocus />
+            </div>
+            <div>
+              <Label>Client *</Label>
+              <select
+                value={newClientId}
+                onChange={(e) => setNewClientId(e.target.value)}
+                className="mt-1 w-full rounded-md border border-[#e0dbd5] bg-white px-3 py-2 text-sm"
+              >
+                <option value="">Select a client...</option>
+                {(clients || []).map((c: Record<string, unknown>) => (
+                  <option key={c.id as string} value={c.id as string}>
+                    {String(c.first_name || "")} {String(c.last_name || "")}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>Contract Type</Label>
+              <Input placeholder="e.g. fixed_price, time_and_materials" value={newContractType} onChange={(e) => setNewContractType(e.target.value)} className="mt-1" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button
+                disabled={!newTitle.trim() || !newClientId || createContract.isPending}
+                onClick={() => {
+                  createContract.mutate(
+                    { tenant_id: appUser?.tenantId, client_id: newClientId, title: newTitle, ...(newContractType ? { contract_type: newContractType } : {}) } as never,
+                    {
+                      onSuccess: (data: Record<string, unknown>) => {
+                        setCreateOpen(false);
+                        setNewClientId("");
+                        setNewTitle("");
+                        setNewContractType("");
+                        router.push(`/admin/contracts/${data.id}`);
+                      },
+                    }
+                  );
+                }}
+              >
+                {createContract.isPending ? "Creating..." : "Create Contract"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -11,7 +11,7 @@ export function useContracts(tenantId?: string) {
     queryFn: async () => {
       let q = supabase
         .from("contracts")
-        .select("*, clients(*), projects(id, name)");
+        .select("*, clients(*), projects!contracts_project_id_fkey(id, name)");
       if (tenantId) q = q.eq("tenant_id", tenantId);
       const { data, error } = await q.order("created_at", {
         ascending: false,
@@ -29,7 +29,7 @@ export function useContract(id?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contracts")
-        .select("*, clients(*), projects(id, name), contract_sections(*)")
+        .select("*, clients(*), projects!contracts_project_id_fkey(id, name), contract_sections(*)")
         .eq("id", id!)
         .single();
       if (error) throw error;

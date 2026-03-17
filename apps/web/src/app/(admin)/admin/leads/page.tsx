@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   Plus,
   Search,
@@ -15,7 +17,8 @@ import {
   GripVertical,
   AlertCircle,
 } from "lucide-react";
-import { useLeads } from "@/lib/hooks/use-leads";
+import { useLeads, useCreateLead } from "@/lib/hooks/use-leads";
+import { useAppUser } from "@/lib/hooks/use-app-user";
 
 const statusColumns = [
   { key: "new", label: "New", color: "bg-blue-500" },
@@ -59,6 +62,15 @@ function formatCurrency(value: number | null | undefined): string {
 export default function LeadsPage() {
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newProjectType, setNewProjectType] = useState("");
+  const [newSource, setNewSource] = useState("");
+  const { appUser } = useAppUser();
+  const createLead = useCreateLead();
 
   const { data: leads, isLoading, error } = useLeads();
 
@@ -110,6 +122,7 @@ export default function LeadsPage() {
         <Button
           size="sm"
           className="bg-black text-xs text-white hover:bg-black/90"
+          onClick={() => setCreateOpen(true)}
         >
           <Plus className="mr-1 h-3 w-3" />
           New Lead
@@ -325,6 +338,61 @@ export default function LeadsPage() {
           )}
         </>
       )}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>New Lead</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>First Name *</Label>
+              <Input placeholder="First name" value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} className="mt-1" autoFocus />
+            </div>
+            <div>
+              <Label>Last Name *</Label>
+              <Input placeholder="Last name" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input placeholder="email@example.com" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input placeholder="(555) 555-5555" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Project Type</Label>
+              <Input placeholder="e.g. Kitchen Remodel" value={newProjectType} onChange={(e) => setNewProjectType(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Source</Label>
+              <Input placeholder="e.g. referral, website" value={newSource} onChange={(e) => setNewSource(e.target.value)} className="mt-1" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button
+                disabled={!newFirstName.trim() || !newLastName.trim() || createLead.isPending}
+                onClick={() => {
+                  createLead.mutate(
+                    { tenant_id: appUser?.tenantId, first_name: newFirstName, last_name: newLastName, ...(newEmail ? { email: newEmail } : {}), ...(newPhone ? { phone: newPhone } : {}), ...(newProjectType ? { project_type: newProjectType } : {}), ...(newSource ? { source: newSource } : {}) } as never,
+                    {
+                      onSuccess: () => {
+                        setCreateOpen(false);
+                        setNewFirstName("");
+                        setNewLastName("");
+                        setNewEmail("");
+                        setNewPhone("");
+                        setNewProjectType("");
+                        setNewSource("");
+                      },
+                    }
+                  );
+                }}
+              >
+                {createLead.isPending ? "Creating..." : "Create Lead"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

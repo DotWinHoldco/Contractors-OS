@@ -2,13 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Plus, Search, FileText } from "lucide-react";
-import { useEstimates } from "@/lib/hooks/use-estimates";
+import { useEstimates, useCreateEstimate } from "@/lib/hooks/use-estimates";
+import { useClients } from "@/lib/hooks/use-clients";
+import { useAppUser } from "@/lib/hooks/use-app-user";
 
 type EstimateStatus = "draft" | "sent" | "accepted" | "declined";
 
@@ -41,8 +46,14 @@ function formatDate(dateStr: string | null): string {
 }
 
 export default function EstimatesPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<EstimateStatus | "all">("all");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newClientId, setNewClientId] = useState("");
+  const { appUser } = useAppUser();
+  const createEstimate = useCreateEstimate();
+  const { data: clients } = useClients();
   const { data: estimates, isLoading } = useEstimates();
 
   const rows = (estimates ?? []) as Record<string, unknown>[];
@@ -77,6 +88,7 @@ export default function EstimatesPage() {
         <Button
           size="sm"
           className="bg-black text-xs text-white hover:bg-black/90"
+          onClick={() => setCreateOpen(true)}
         >
           <Plus className="mr-1 h-3 w-3" />
           New Estimate
@@ -213,6 +225,48 @@ export default function EstimatesPage() {
           </table>
         </div>
       </Card>
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>New Estimate</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Client *</Label>
+              <select
+                value={newClientId}
+                onChange={(e) => setNewClientId(e.target.value)}
+                className="mt-1 w-full rounded-md border border-[#e0dbd5] bg-white px-3 py-2 text-sm"
+              >
+                <option value="">Select a client...</option>
+                {(clients || []).map((c: Record<string, unknown>) => (
+                  <option key={c.id as string} value={c.id as string}>
+                    {String(c.first_name || "")} {String(c.last_name || "")}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button
+                disabled={!newClientId || createEstimate.isPending}
+                onClick={() => {
+                  createEstimate.mutate(
+                    { tenant_id: appUser?.tenantId, client_id: newClientId } as never,
+                    {
+                      onSuccess: (data: Record<string, unknown>) => {
+                        setCreateOpen(false);
+                        setNewClientId("");
+                        router.push(`/admin/estimates/${data.id}`);
+                      },
+                    }
+                  );
+                }}
+              >
+                {createEstimate.isPending ? "Creating..." : "Create Estimate"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

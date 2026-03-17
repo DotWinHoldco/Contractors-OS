@@ -12,7 +12,7 @@ export function useEstimates(tenantId?: string, status?: string) {
       let q = supabase
         .from("estimates")
         .select(
-          "*, clients(id, first_name, last_name, email), projects(id, name)"
+          "*, clients(id, first_name, last_name, email), projects!estimates_project_id_fkey(id, name)"
         );
       if (tenantId) q = q.eq("tenant_id", tenantId);
       if (status) q = q.eq("status", status as never);

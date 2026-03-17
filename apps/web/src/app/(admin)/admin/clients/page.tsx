@@ -7,11 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Plus, Search, AlertCircle } from "lucide-react";
-import { useClients } from "@/lib/hooks/use-clients";
+import { useClients, useCreateClient } from "@/lib/hooks/use-clients";
+import { useAppUser } from "@/lib/hooks/use-app-user";
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const { appUser } = useAppUser();
+  const createClient = useCreateClient();
 
   // Pass search to the hook so it filters server-side via ilike
   const { data: clients, isLoading, error } = useClients(undefined, search || undefined);
@@ -58,6 +68,7 @@ export default function ClientsPage() {
         <Button
           size="sm"
           className="bg-black text-xs text-white hover:bg-black/90"
+          onClick={() => setCreateOpen(true)}
         >
           <Plus className="mr-1 h-3 w-3" />
           Add Client
@@ -182,6 +193,51 @@ export default function ClientsPage() {
           </div>
         </Card>
       )}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add Client</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>First Name *</Label>
+              <Input placeholder="First name" value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} className="mt-1" autoFocus />
+            </div>
+            <div>
+              <Label>Last Name *</Label>
+              <Input placeholder="Last name" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Email *</Label>
+              <Input placeholder="email@example.com" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input placeholder="(555) 555-5555" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="mt-1" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button
+                disabled={!newFirstName.trim() || !newLastName.trim() || !newEmail.trim() || createClient.isPending}
+                onClick={() => {
+                  createClient.mutate(
+                    { tenant_id: appUser?.tenantId, first_name: newFirstName, last_name: newLastName, email: newEmail, ...(newPhone ? { phone: newPhone } : {}) } as never,
+                    {
+                      onSuccess: () => {
+                        setCreateOpen(false);
+                        setNewFirstName("");
+                        setNewLastName("");
+                        setNewEmail("");
+                        setNewPhone("");
+                      },
+                    }
+                  );
+                }}
+              >
+                {createClient.isPending ? "Creating..." : "Create Client"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
