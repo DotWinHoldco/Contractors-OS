@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useAppUser } from "@/lib/hooks/use-app-user";
 import {
   useScheduleEvents,
   useCreateScheduleEvent,
@@ -89,6 +90,7 @@ export default function SchedulingPage() {
   const [view, setView] = useState<"month" | "week">("month");
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  const { appUser } = useAppUser();
   const { data: eventsData, isLoading } = useScheduleEvents();
   const createEvent = useCreateScheduleEvent();
   const deleteEvent = useDeleteScheduleEvent();
@@ -150,6 +152,7 @@ export default function SchedulingPage() {
       event_type: "job_work",
       start_time: startTime,
       end_time: startTime,
+      tenant_id: appUser?.tenantId,
     });
   };
 

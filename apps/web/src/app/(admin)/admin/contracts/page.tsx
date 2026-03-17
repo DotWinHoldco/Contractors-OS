@@ -238,7 +238,18 @@ export default function ContractsPage() {
             </div>
             <div>
               <Label>Contract Type</Label>
-              <Input placeholder="e.g. fixed_price, time_and_materials" value={newContractType} onChange={(e) => setNewContractType(e.target.value)} className="mt-1" />
+              <select value={newContractType} onChange={(e) => setNewContractType(e.target.value)} className="mt-1 w-full rounded-md border border-[#e0dbd5] bg-white px-3 py-2 text-sm">
+                <option value="">Select type (optional)</option>
+                <option value="fixed_price">Fixed Price</option>
+                <option value="cost_plus_percentage">Cost Plus Percentage</option>
+                <option value="cost_plus_fixed_fee">Cost Plus Fixed Fee</option>
+                <option value="time_and_materials">Time &amp; Materials</option>
+                <option value="guaranteed_maximum_price">Guaranteed Maximum Price</option>
+                <option value="subcontractor_agreement">Subcontractor Agreement</option>
+                <option value="service_agreement">Service Agreement</option>
+                <option value="maintenance_agreement">Maintenance Agreement</option>
+                <option value="other">Other</option>
+              </select>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>

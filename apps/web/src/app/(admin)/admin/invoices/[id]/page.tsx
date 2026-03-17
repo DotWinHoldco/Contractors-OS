@@ -26,6 +26,7 @@ import {
   useUpdateInvoiceLineItem,
   useDeleteInvoiceLineItem,
 } from "@/lib/hooks/use-invoices";
+import { useAppUser } from "@/lib/hooks/use-app-user";
 
 const TAX_RATE = 0.07;
 
@@ -45,6 +46,7 @@ export default function InvoiceDetailPage({
 }) {
   const { id } = use(params);
   const isNew = id === "new";
+  const { appUser } = useAppUser();
 
   const { data: invoice, isLoading: invoiceLoading } = useInvoice(isNew ? "" : id);
   const { data: lineItemsData, isLoading: lineItemsLoading } =
@@ -135,7 +137,8 @@ export default function InvoiceDetailPage({
   const handleAddLineItem = () => {
     createLineItem.mutate({
       invoice_id: id,
-      description: "",
+      tenant_id: appUser?.tenantId,
+      name: "New Line Item",
       quantity: 1,
       unit_price: 0,
     });

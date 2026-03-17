@@ -32,7 +32,7 @@ export function useEstimate(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("estimates")
-        .select("*, clients(*), projects(*)")
+        .select("*, clients(*), projects!estimates_project_id_fkey(*)")
         .eq("id", id)
         .single();
       if (error) throw error;
