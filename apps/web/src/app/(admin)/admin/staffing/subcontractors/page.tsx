@@ -13,9 +13,11 @@ import {
   useCreateSubcontractor,
   useDeleteSubcontractor,
 } from "@/lib/hooks/use-employees";
+import { useAppUser } from "@/lib/hooks/use-app-user";
 
 export default function SubcontractorsPage() {
   const [search, setSearch] = useState("");
+  const { appUser } = useAppUser();
 
   const { data: subsData, isLoading } = useSubcontractors();
   const createSub = useCreateSubcontractor();
@@ -33,7 +35,7 @@ export default function SubcontractorsPage() {
   });
 
   const handleAdd = () => {
-    createSub.mutate({ company_name: "New Subcontractor", trade_categories: [] });
+    createSub.mutate({ company_name: "New Subcontractor", trade_categories: [], tenant_id: appUser?.tenantId });
   };
 
   if (isLoading) {

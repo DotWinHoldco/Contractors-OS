@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, ArrowLeft } from "lucide-react";
 import { useEmployees, useCreateEmployee, useDeleteEmployee } from "@/lib/hooks/use-employees";
+import { useAppUser } from "@/lib/hooks/use-app-user";
 
 export default function EmployeesPage() {
   const [search, setSearch] = useState("");
+  const { appUser } = useAppUser();
 
   const { data: employeesData, isLoading } = useEmployees();
   const createEmployee = useCreateEmployee();
@@ -29,7 +31,7 @@ export default function EmployeesPage() {
   });
 
   const handleAdd = () => {
-    createEmployee.mutate({ first_name: "New", last_name: "Employee", employment_status: "active" });
+    createEmployee.mutate({ first_name: "New", last_name: "Employee", employment_status: "active", tenant_id: appUser?.tenantId });
   };
 
   if (isLoading) {

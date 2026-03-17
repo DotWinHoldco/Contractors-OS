@@ -29,7 +29,7 @@ export function useContract(id?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contracts")
-        .select("*, clients(*), projects!contracts_project_id_fkey(id, name), contract_sections(*)")
+        .select("*, clients(*), projects!contracts_project_id_fkey(id, name)")
         .eq("id", id!)
         .single();
       if (error) throw error;

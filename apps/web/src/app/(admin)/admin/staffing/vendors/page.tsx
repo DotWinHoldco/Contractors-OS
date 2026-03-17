@@ -12,9 +12,11 @@ import {
   useCreateVendor,
   useDeleteVendor,
 } from "@/lib/hooks/use-employees";
+import { useAppUser } from "@/lib/hooks/use-app-user";
 
 export default function VendorsPage() {
   const [search, setSearch] = useState("");
+  const { appUser } = useAppUser();
 
   const { data: vendorsData, isLoading } = useVendors();
   const createVendor = useCreateVendor();
@@ -32,7 +34,7 @@ export default function VendorsPage() {
   });
 
   const handleAdd = () => {
-    createVendor.mutate({ company_name: "New Vendor" });
+    createVendor.mutate({ company_name: "New Vendor", tenant_id: appUser?.tenantId });
   };
 
   if (isLoading) {

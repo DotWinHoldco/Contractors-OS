@@ -4,6 +4,22 @@ import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Plus,
   ChevronLeft,
@@ -17,6 +33,17 @@ import {
 } from "@/lib/hooks/use-schedule";
 
 type EventType = "consultation" | "site_visit" | "inspection" | "job_work";
+
+const SCHEDULE_EVENT_TYPES = [
+  { value: "consultation", label: "Consultation" },
+  { value: "site_visit", label: "Site Visit" },
+  { value: "estimate_appointment", label: "Estimate Appointment" },
+  { value: "job_work", label: "Job Work" },
+  { value: "inspection", label: "Inspection" },
+  { value: "delivery", label: "Delivery" },
+  { value: "client_meeting", label: "Client Meeting" },
+  { value: "team_meeting", label: "Team Meeting" },
+] as const;
 
 const EVENT_COLORS: Record<EventType, { bg: string; text: string; dot: string }> = {
   consultation: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500" },
@@ -89,6 +116,12 @@ function getWeekData(baseDate: Date) {
 export default function SchedulingPage() {
   const [view, setView] = useState<"month" | "week">("month");
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newEventType, setNewEventType] = useState("job_work");
+  const [newDate, setNewDate] = useState("");
+  const [newStartTime, setNewStartTime] = useState("09:00");
+  const [newEndTime, setNewEndTime] = useState("10:00");
 
   const { appUser } = useAppUser();
   const { data: eventsData, isLoading } = useScheduleEvents();
@@ -145,15 +178,32 @@ export default function SchedulingPage() {
     return `${cell.year}-${m}-${d}`;
   };
 
-  const handleAddEvent = () => {
-    const startTime = new Date().toISOString();
-    createEvent.mutate({
-      title: "New Event",
-      event_type: "job_work",
-      start_time: startTime,
-      end_time: startTime,
-      tenant_id: appUser?.tenantId,
-    });
+  const openAddDialog = () => {
+    const today = new Date().toISOString().split("T")[0];
+    setNewTitle("");
+    setNewEventType("job_work");
+    setNewDate(today);
+    setNewStartTime("09:00");
+    setNewEndTime("10:00");
+    setDialogOpen(true);
+  };
+
+  const handleCreateEvent = () => {
+    const dateStr = newDate || new Date().toISOString().split("T")[0];
+    const startTime = `${dateStr}T${newStartTime}:00`;
+    const endTime = `${dateStr}T${newEndTime}:00`;
+    createEvent.mutate(
+      {
+        title: newTitle || "Untitled Event",
+        event_type: newEventType,
+        start_time: startTime,
+        end_time: endTime,
+        tenant_id: appUser?.tenantId,
+      },
+      {
+        onSuccess: () => setDialogOpen(false),
+      }
+    );
   };
 
   if (isLoading) {
@@ -184,13 +234,91 @@ export default function SchedulingPage() {
         <Button
           size="sm"
           className="bg-black text-xs text-white hover:bg-black/90"
-          onClick={handleAddEvent}
-          disabled={createEvent.isPending}
+          onClick={openAddDialog}
         >
           <Plus className="mr-1 h-3 w-3" />
           Add Event
         </Button>
       </div>
+
+      {/* Add Event Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Event</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="event-title">Title</Label>
+              <Input
+                id="event-title"
+                placeholder="Event title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="event-type">Event Type</Label>
+              <Select value={newEventType} onValueChange={(v) => { if (v) setNewEventType(v); }}>
+                <SelectTrigger id="event-type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SCHEDULE_EVENT_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="event-date">Date</Label>
+              <Input
+                id="event-date"
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="event-start">Start Time</Label>
+                <Input
+                  id="event-start"
+                  type="time"
+                  value={newStartTime}
+                  onChange={(e) => setNewStartTime(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="event-end">End Time</Label>
+                <Input
+                  id="event-end"
+                  type="time"
+                  value={newEndTime}
+                  onChange={(e) => setNewEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-black text-white hover:bg-black/90"
+              onClick={handleCreateEvent}
+              disabled={createEvent.isPending}
+            >
+              {createEvent.isPending ? "Creating..." : "Create Event"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Controls */}
       <div className="mb-4 flex items-center justify-between">
