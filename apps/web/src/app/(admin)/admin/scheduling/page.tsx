@@ -159,28 +159,65 @@ export default function SchedulingPage() {
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, { id: string; title: string; type: EventType; time: string; recurring: boolean }[]> = {};
+
+    // Visible range: 6 weeks around current month
+    const rangeStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), -7);
+    const rangeEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 7);
+
+    const addToMap = (dateStr: string, entry: { id: string; title: string; type: EventType; time: string; recurring: boolean }) => {
+      if (!map[dateStr]) map[dateStr] = [];
+      map[dateStr].push(entry);
+    };
+
     for (const ev of events) {
       const startTime = String(ev.start_time ?? "");
       if (!startTime) continue;
-      // Use local date string to match calendar cells
-      const dateStr = new Date(startTime).toLocaleDateString("en-CA");
-      if (!dateStr) continue;
 
+      const evStart = new Date(startTime);
       const title = String(ev.title ?? "");
       const type = (String(ev.event_type ?? "job_work")) as EventType;
-      const recurring = !!ev.is_recurring;
-      const timeStr = startTime.includes("T")
-        ? new Date(startTime).toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          })
-        : "";
+      const isRec = !!ev.is_recurring;
+      const timeStr = evStart.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      const baseEntry = { id: String(ev.id), title, type, time: timeStr, recurring: isRec };
 
-      if (!map[dateStr]) map[dateStr] = [];
-      map[dateStr].push({ id: String(ev.id), title, type, time: timeStr, recurring });
+      // Always add the original occurrence
+      const origDate = evStart.toLocaleDateString("en-CA");
+      addToMap(origDate, baseEntry);
+
+      // Generate recurring occurrences
+      if (isRec && ev.recurrence_pattern && ev.recurrence_pattern !== "none") {
+        const pattern = String(ev.recurrence_pattern);
+        const interval = Number(ev.recurrence_interval) || 1;
+        const endDateStr = ev.recurrence_end_date ? String(ev.recurrence_end_date) : null;
+        const recEnd = endDateStr ? new Date(endDateStr) : rangeEnd;
+
+        let cursor = new Date(evStart);
+        const maxOccurrences = 200; // safety limit
+        let count = 0;
+
+        while (count < maxOccurrences) {
+          // Advance cursor by the pattern
+          if (pattern === "daily") cursor.setDate(cursor.getDate() + interval);
+          else if (pattern === "weekly") cursor.setDate(cursor.getDate() + 7 * interval);
+          else if (pattern === "biweekly") cursor.setDate(cursor.getDate() + 14 * interval);
+          else if (pattern === "monthly") cursor.setMonth(cursor.getMonth() + interval);
+          else if (pattern === "quarterly") cursor.setMonth(cursor.getMonth() + 3 * interval);
+          else if (pattern === "semiannual") cursor.setMonth(cursor.getMonth() + 6 * interval);
+          else if (pattern === "annual") cursor.setFullYear(cursor.getFullYear() + interval);
+          else break;
+
+          if (cursor > recEnd || cursor > rangeEnd) break;
+          count++;
+
+          if (cursor >= rangeStart) {
+            const ds = cursor.toLocaleDateString("en-CA");
+            addToMap(ds, { ...baseEntry, id: `${baseEntry.id}_r${count}` });
+          }
+        }
+      }
     }
     return map;
-  }, [events]);
+  }, [events, currentDate]);
 
   const cellDateStr = (cell: { day: number; month: number; year: number }) => {
     const m = String(cell.month + 1).padStart(2, "0");
